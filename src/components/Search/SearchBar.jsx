@@ -1,36 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import './SearchBar.css';
 
-const SearchBar = ({ onSearch, placeholder = "Buscar jogos...", debounceTime = 300 }) => {
+const SearchBar = ({ onSearch, placeholder = "Buscar jogos...", debounceTime = 500 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedTerm, setDebouncedTerm] = useState('');
   
-  // Efeito para debounce da busca
-  useEffect(() => {
-    // Configurar timer para debounce
-    const timer = setTimeout(() => {
-      setDebouncedTerm(searchTerm);
-    }, debounceTime);
-    
-    // Limpar timer em cada mudança
-    return () => clearTimeout(timer);
-  }, [searchTerm, debounceTime]);
-  
-  // Efeito para executar a busca quando o termo debounced mudar
-  useEffect(() => {
-    if (debouncedTerm !== '') {
-      onSearch(debouncedTerm);
-    }
-  }, [debouncedTerm, onSearch]);
+  // evitar recriação da função onSearch em cda redenrizaçao
+  const debouncedSearch = useCallback(
+    (() => {
+      let timer;
+      return (value) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          onSearch(value);
+        }, debounceTime);
+      };
+    })(),
+    [onSearch, debounceTime]
+  );
   
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
-    // Se o campo estiver vazio, limpe a busca imediatamente
+
     if (value === '') {
-      setDebouncedTerm('');
       onSearch('');
+    } else {
+      debouncedSearch(value);
     }
   };
   

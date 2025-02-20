@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Carousel from '../../components/Carousel/Carousel.jsx';
@@ -40,6 +40,7 @@ function Library() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [lastSearchTerm, setLastSearchTerm] = useState(''); // Para controlar buscas duplicadas
 
   // Carregar jogos da API
   useEffect(() => {
@@ -117,14 +118,41 @@ function Library() {
     
     // Se também tiver um termo de busca ativo, podemos combinar os filtros
     if (searchTerm) {
-      handleSearch(searchTerm, true);
+      handleSearch(searchTerm);
     }
   };
 
-  // Função de busca atualizada
-  const handleSearch = async (term, keepFilters = false) => {
+  // Função de busca atualizada com useCallback para evitar recriações
+  const handleSearch = useCallback(async (term) => {
+    // Evitar buscas duplicadas do mesmo termo
+    if (term === lastSearchTerm && term !== '') {
+      return;
+    }
+    
     console.log('Buscando por:', term);
+    setLastSearchTerm(term);
     setSearchTerm(term);
+    
+    // Se o termo for vazio, recarregue todos os jogos e limpe a busca
+    if (!term) {
+      if (isSearching) {
+        setIsSearching(false);
+        setIsLoading(true);
+        try {
+          const games = await fetchGames();
+          setAvailableGames(games.filter(game => !game.installed));
+          setInstalledGames(games.filter(game => game.installed));
+          setError('');
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      return;
+    }
+    
+    // Se tiver um termo válido, inicie a busca
     setIsSearching(true);
     setIsLoading(true);
     
@@ -135,7 +163,7 @@ function Library() {
       // Se tiver filtros selecionados, aplicá-los aos resultados da busca
       let filteredResults = [...searchResults];
       
-      if (keepFilters && (selectedSubjects.length > 0 || selectedGameTypes.length > 0)) {
+      if (selectedSubjects.length > 0 || selectedGameTypes.length > 0) {
         filteredResults = searchResults.filter(game => {
           const matchesSubject = selectedSubjects.length === 0 || 
             (game.subject && selectedSubjects.includes(game.subject.toLowerCase()));
@@ -159,30 +187,29 @@ function Library() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedSubjects, selectedGameTypes, isSearching, lastSearchTerm]);
 
   // Limpar busca e mostrar todos os jogos novamente
-  const handleClearSearch = () => {
-    if (searchTerm) {
-      setSearchTerm('');
-      setIsSearching(false);
-      
-      // Recarregar todos os jogos
-      setIsLoading(true);
-      fetchGames()
-        .then(games => {
-          setAvailableGames(games.filter(game => !game.installed));
-          setInstalledGames(games.filter(game => game.installed));
-          setError('');
-        })
-        .catch(err => {
-          setError(err.message);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
-  };
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+    setLastSearchTerm('');
+    setIsSearching(false);
+    
+    // Recarregar todos os jogos
+    setIsLoading(true);
+    fetchGames()
+      .then(games => {
+        setAvailableGames(games.filter(game => !game.installed));
+        setInstalledGames(games.filter(game => game.installed));
+        setError('');
+      })
+      .catch(err => {
+        setError(err.message);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <div className="app">
@@ -202,7 +229,7 @@ function Library() {
             Filtrar
           </button>
           
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar onSearch={handleSearch} debounceTime={500} />
           
           {isSearching && (
             <button className="clear-search-button" onClick={handleClearSearch}>

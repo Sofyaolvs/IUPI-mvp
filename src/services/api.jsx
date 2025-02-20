@@ -14,11 +14,9 @@ const extractCardImage = (gameData) => {
     return gameData.images[0];
   }
   
-  // Fall back to default
   return null;
 };
 
-// Function to fetch games and add cardImage
 export const fetchGames = async () => {
   try {
     console.log('Fetching games from API');
@@ -129,7 +127,7 @@ export const fetchGameById = async (gameId) => {
   }
 };
 
-// Modificação na função searchGamesLocally em api.jsx
+// Método 1: Busca local melhorada (filtrar jogos já carregados)
 export const searchGamesLocally = async (searchTerm) => {
   try {
     // Buscar todos os jogos primeiro
@@ -163,8 +161,95 @@ export const searchGamesLocally = async (searchTerm) => {
   }
 };
 
-// O método searchGames permanece o mesmo, usando o searchGamesLocally melhorado
+// Método 2: Busca na API (assumindo que a API suporta busca por nome)
+export const searchGamesAPI = async (searchTerm) => {
+  try {
+    // Se não houver termo de busca, buscar todos os jogos
+    if (!searchTerm || searchTerm.trim() === '') {
+      return await fetchGames();
+    }
+    
+    console.log(`Searching games with term: "${searchTerm}"`);
+    // Usando parâmetros de query para buscar pelo nome
+    const response = await fetch(`${API_URL}/games?name=${encodeURIComponent(searchTerm)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar jogos: ${response.statusText}`);
+    }
+
+    const games = await response.json();
+    console.log(`Found ${games.length} games matching "${searchTerm}"`);
+    
+    // Processar os jogos para garantir que tenham imagens (reutilizando lógica)
+    const processedGames = [];
+    
+    for (const game of games) {
+      if (!game || !game.url) {
+        console.warn('Skipping invalid game entry:', game);
+        continue;
+      }
+      
+      try {
+        // Para cada jogo, precisamos buscar sua imagem se não tiver uma
+        if (!game.cardImage && !game.image) {
+          const gameData = await window.electronAPI.scrapeGame(game.url);
+          
+          if (!gameData.error) {
+            const cardImage = extractCardImage(gameData);
+            
+            if (cardImage) {
+              game.cardImage = cardImage;
+              game.image = cardImage;
+            }
+          }
+        }
+        
+        processedGames.push(game);
+      } catch (error) {
+        console.error(`Error processing game ${game.title || 'Untitled'}:`, error);
+        processedGames.push(game);
+      }
+    }
+    
+    return processedGames;
+  } catch (error) {
+    console.error('Error searching games from API:', error.message);
+    throw new Error(error.message || 'Erro ao buscar jogos');
+  }
+};
+
+// Função principal de busca - evitando múltiplas chamadas dentro de um curto período
+// Adicionando variável de controle para prevenir chamadas simultâneas
+let isSearchInProgress = false;
+let searchTimeout = null;
+
 export const searchGames = async (searchTerm) => {
-  // Usando o método de busca local aprimorado
-  return await searchGamesLocally(searchTerm);
+  // Limpar qualquer busca pendente
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  // Se uma busca já estiver em andamento, aguarde um pouco
+  if (isSearchInProgress) {
+    return new Promise((resolve) => {
+      searchTimeout = setTimeout(() => {
+        resolve(searchGames(searchTerm));
+      }, 300);
+    });
+  }
+
+  try {
+    isSearchInProgress = true;
+    // Usando o método de busca local aprimorado
+    const results = await searchGamesLocally(searchTerm);
+    return results;
+  } finally {
+    // Garantir que o flag seja liberado mesmo em caso de erro
+    isSearchInProgress = false;
+  }
 };
