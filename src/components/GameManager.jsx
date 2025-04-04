@@ -24,10 +24,19 @@ const GameManager = () => {
       )}
 
       {scrapedData && !downloadedGame && (
-        <GameDownloader 
-          url={scrapedData.downloadUrl} 
-          onDownloadComplete={handleDownloadComplete} 
-        />
+        <>
+          <div className="bg-gray-100 p-2 rounded shadow">
+            <h3 className="font-semibold mb-2">Jogo encontrado:</h3>
+            <p><strong>Título:</strong> {scrapedData.title}</p>
+            <p><strong>URL do Download:</strong> {scrapedData.downloadUrl}</p>
+          </div>
+
+          {/* Mostra botão de download */}
+          <GameDownloader 
+            url={scrapedData.downloadUrl} 
+            onDownloadComplete={handleDownloadComplete} 
+          />
+        </>
       )}
 
       {downloadedGame && (

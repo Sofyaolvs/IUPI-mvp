@@ -8,7 +8,7 @@ const GameDownloader = ({ url, onDownloadComplete }) => {
 
   const handleDownload = async () => {
     if (!url) {
-      setError('No URL provided');
+      setError('URL não fornecida');
       return;
     }
 
@@ -17,39 +17,31 @@ const GameDownloader = ({ url, onDownloadComplete }) => {
     setProgress(0);
 
     try {
-      // Simulate progress updates
+      // Simular progresso de download
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          const newProgress = prev + Math.random() * 10;
+          const newProgress = prev + Math.random() * 8;
           return newProgress >= 100 ? 100 : newProgress;
         });
       }, 500);
 
-      // In a real React app, you would make an API call to your backend
-      // which would handle the download functionality
-      const response = await fetch('/api/download', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      clearInterval(progressInterval);
+      // 🔌 Chamada via IPC para Electron (download automatizado com Puppeteer)
+      const result = window.electron.ipcRenderer.invoke('download-game', url);
+      clearInterval(progressInterval)
       setProgress(100);
 
-      if (!response.ok) {
-        throw new Error('Failed to download game');
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
-      const result = await response.json();
       setDownloadInfo(result);
-      
+
       if (onDownloadComplete) {
         onDownloadComplete(result);
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Erro ao baixar:', err);
+      setError(err.message || 'Erro inesperado');
       setProgress(0);
     } finally {
       setIsDownloading(false);
@@ -60,34 +52,35 @@ const GameDownloader = ({ url, onDownloadComplete }) => {
     <div className="p-4 border rounded shadow-sm">
       <h2 className="text-xl font-bold mb-4">Game Downloader</h2>
       <div className="flex flex-col gap-4">
-        <div className="text-gray-700">URL: {url || 'No URL provided'}</div>
+        <div className="text-gray-700">URL: {url || 'Nenhuma URL fornecida'}</div>
+        
         <button
           onClick={handleDownload}
           disabled={isDownloading || !url}
           className="bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-gray-400"
         >
-          {isDownloading ? 'Downloading...' : 'Download Game'}
+          {isDownloading ? 'Baixando...' : 'Baixar Jogo'}
         </button>
-        
+
         {isDownloading && (
-          <div className="w-full bg-gray-200 rounded">
+          <div className="w-full bg-gray-200 rounded overflow-hidden">
             <div 
-              className="bg-blue-500 text-white text-center p-1 rounded" 
+              className="bg-blue-500 text-white text-center p-1 transition-all duration-300 ease-out" 
               style={{ width: `${progress}%` }}
             >
               {Math.round(progress)}%
             </div>
           </div>
         )}
-        
+
         {error && <div className="text-red-500">{error}</div>}
-        
+
         {downloadInfo && (
           <div className="bg-gray-100 p-2 rounded">
-            <div className="font-bold">Download Complete!</div>
-            <div>File: {downloadInfo.fileName}</div>
-            <div>Path: {downloadInfo.path}</div>
-            <div>{downloadInfo.message}</div>
+            <div className="font-bold text-green-700">Download Concluído!</div>
+            <div><strong>Arquivo:</strong> {downloadInfo.fileName}</div>
+            <div><strong>Local:</strong> {downloadInfo.path}</div>
+            {downloadInfo.message && <div>{downloadInfo.message}</div>}
           </div>
         )}
       </div>
@@ -95,4 +88,4 @@ const GameDownloader = ({ url, onDownloadComplete }) => {
   );
 };
 
-export default GameDownloader
+export default GameDownloader;

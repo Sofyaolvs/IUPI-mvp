@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
- 
+
 const GameExecutor = ({ filePath }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState(null);
@@ -7,7 +7,7 @@ const GameExecutor = ({ filePath }) => {
 
   const handleExecute = async () => {
     if (!filePath) {
-      setError('No file path provided');
+      setError('Nenhum caminho de arquivo fornecido');
       return;
     }
 
@@ -16,24 +16,16 @@ const GameExecutor = ({ filePath }) => {
     setResult(null);
 
     try {
-      // In a real React app, you would make an API call to your backend
-      // which would handle the execution functionality
-      const response = await fetch('/api/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filePath }),
-      });
+      // 🔌 Chamada via IPC para Electron
+      const response = await window.electron.ipcRenderer.invoke('execute-game', filePath);
 
-      if (!response.ok) {
-        throw new Error('Failed to execute game');
+      if (response?.error) {
+        throw new Error(response.error);
       }
 
-      const executionResult = await response.json();
-      setResult(executionResult.output);
+      setResult(response.output || 'Jogo iniciado com sucesso!');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Erro ao executar o jogo');
     } finally {
       setIsExecuting(false);
     }
@@ -43,20 +35,20 @@ const GameExecutor = ({ filePath }) => {
     <div className="p-4 border rounded shadow-sm">
       <h2 className="text-xl font-bold mb-4">Game Launcher</h2>
       <div className="flex flex-col gap-4">
-        <div className="text-gray-700">File: {filePath || 'No file selected'}</div>
+        <div className="text-gray-700">Arquivo: {filePath || 'Nenhum arquivo selecionado'}</div>
         <button
           onClick={handleExecute}
           disabled={isExecuting || !filePath}
           className="bg-purple-500 text-white p-2 rounded hover:bg-purple-600 disabled:bg-gray-400"
         >
-          {isExecuting ? 'Launching...' : 'Launch Game'}
+          {isExecuting ? 'Iniciando...' : 'Jogar'}
         </button>
         
         {error && <div className="text-red-500">{error}</div>}
         
         {result && (
           <div className="bg-gray-100 p-2 rounded">
-            <div className="font-bold">Execution Output:</div>
+            <div className="font-bold">Resultado da Execução:</div>
             <pre className="whitespace-pre-wrap">{result}</pre>
           </div>
         )}
@@ -65,5 +57,4 @@ const GameExecutor = ({ filePath }) => {
   );
 };
 
-
-export default GameExecutor
+export default GameExecutor;
