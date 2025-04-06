@@ -24,19 +24,6 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  mainWindow.webContents.openDevTools(); // 🔧 Desabilite em produção se necessário
-
-  // ✅ Corrige problema de Content Security Policy para imagens externas
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; img-src 'self' https://img.itch.zone data:;"
-        ]
-      }
-    });
-  });
 };
 
 app.whenReady().then(() => {
