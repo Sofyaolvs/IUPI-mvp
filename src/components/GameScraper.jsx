@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import '../css/GameScraper.css'
 
 const GameScraper = () => {
   const [urlInput, setUrlInput] = useState('');
@@ -39,75 +40,82 @@ const GameScraper = () => {
     }
   };
 
-  return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">scraping</h1>
+  const handleDownload = async () => {
+    if (gameData?.url) {
+      const result = await window.electronAPI.downloadGame(gameData.url);
+      alert(result?.error || 'Download iniciado!');
+    }
+  };
 
-      <form onSubmit={handleSubmit} className="mb-6 flex gap-2 items-center">
+  return (
+    <div className="scraper-container">
+      <h1 className="scraper-title">Scraping</h1>
+
+      <form onSubmit={handleSubmit} className="scraper-form">
         <input
           type="text"
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
           placeholder="Cole a URL do jogo no itch.io"
-          className="flex-1 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="scraper-input"
         />
         <button
           type="submit"
           disabled={loading || !urlInput.trim()}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="scraper-button"
         >
           Buscar
         </button>
       </form>
 
-      
       {loading ? (
-        <p className="text-center">Carregando informações do jogo...</p>
+        <p className="scraper-loading">Carregando informações do jogo...</p>
       ) : error ? (
-        <div className="bg-red-100 p-4 rounded text-red-700">{error}</div>
+        <div className="scraper-error">{error}</div>
       ) : gameData ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1">
-            <div className="bg-gray-100 p-4 rounded">
-              <h2 className="font-bold text-xl mb-2">{gameData.title}</h2>
+        <div className="scraper-grid">
+          {/* Imagens - carrossel lateral */}
+          <div className="scraper-carousel">
+            {gameData.images.map((src, i) => (
+              <div key={i} className="scraper-image-wrapper">
+                <img
+                  src={src}
+                  alt={`Screenshot ${i + 1} de ${gameData.title}`}
+                  className="scraper-image"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Info do jogo */}
+          <div className="scraper-content">
+            <div className="scraper-card">
+              <h2 className="scraper-game-title">{gameData.title}</h2>
               {gameData.tags?.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="scraper-tags">
                   {gameData.tags.map((tag, i) => (
-                    <span key={i} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                    <span key={i} className="scraper-tag">
                       {tag}
                     </span>
                   ))}
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="md:col-span-2">
-            <div className="mb-4">
-              <h3 className="font-bold mb-2">Descrição</h3>
-              <div className="bg-gray-100 p-4 rounded">
+            <div className="scraper-section">
+              <h3 className="scraper-section-title">Descrição</h3>
+              <div className="scraper-card">
                 <p>{gameData.description}</p>
               </div>
             </div>
 
-            <div>
-              <h3 className="font-bold mb-2">Imagens</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {gameData.images.map((src, i) => (
-                  <div key={i} className="overflow-hidden rounded bg-gray-200">
-                    <img
-                      src={src}
-                      alt={`Screenshot ${i + 1} de ${gameData.title}`}
-                      className="w-full h-40 object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <button onClick={handleDownload} className="scraper-download-button">
+              Download do jogo
+            </button>
           </div>
         </div>
       ) : (
-        <p className="text-gray-500 text-sm text-center">Insira uma URL de jogo no itch.io para buscar os dados.</p>
+        <p className="scraper-placeholder">Insira uma URL de jogo no itch.io para buscar os dados.</p>
       )}
     </div>
   );
