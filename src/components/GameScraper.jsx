@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import '../css/GameScraper.css'
+import DownloadButton from '../components/DownloadButton.jsx'
+import '../css/GameScraper.css';
 
 const GameScraper = () => {
   const [urlInput, setUrlInput] = useState('');
@@ -21,7 +22,6 @@ const GameScraper = () => {
         developer: data.developer,
         images: data.images.length > 0 ? data.images : ['/api/placeholder/400/300'],
         tags: data.tags || [],
-        releaseDate: data.releaseDate || '',
         url
       });
     } catch (err) {
@@ -37,13 +37,6 @@ const GameScraper = () => {
     e.preventDefault();
     if (urlInput.trim()) {
       fetchGameInfo(urlInput.trim());
-    }
-  };
-
-  const handleDownload = async () => {
-    if (gameData?.url) {
-      const result = await window.electronAPI.downloadGame(gameData.url);
-      alert(result?.error || 'Download iniciado!');
     }
   };
 
@@ -91,6 +84,9 @@ const GameScraper = () => {
           <div className="scraper-content">
             <div className="scraper-card">
               <h2 className="scraper-game-title">{gameData.title}</h2>
+              {gameData.developer && (
+                <p className="scraper-developer">Desenvolvedor: {gameData.developer}</p>
+              )}
               {gameData.tags?.length > 0 && (
                 <div className="scraper-tags">
                   {gameData.tags.map((tag, i) => (
@@ -109,9 +105,12 @@ const GameScraper = () => {
               </div>
             </div>
 
-            <button onClick={handleDownload} className="scraper-download-button">
-              Download do jogo
-            </button>
+            <div className="scraper-download-container">
+              <DownloadButton
+                gameUrl={gameData.url} 
+                className="scraper-download-button"
+              />
+            </div>
           </div>
         </div>
       ) : (

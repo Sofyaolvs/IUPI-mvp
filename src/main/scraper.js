@@ -10,7 +10,11 @@ async function scrapeItchGame(url) {
     const description = document.querySelector('.formatted_description')?.textContent?.trim() || '';
     const developer = document.querySelector('.developer_name')?.textContent?.trim() || '';
     const images = Array.from(document.querySelectorAll('.screenshot_list img')).map(img => img.src);
-    return { title, description, developer, images };
+    const tags = Array.from(document.querySelectorAll('.game_tags .tag'))
+      .map(tag => tag.textContent.trim())
+      .filter(tag => tag);
+      
+    return { title, description, developer, images, tags };
   });
 
   await browser.close();
