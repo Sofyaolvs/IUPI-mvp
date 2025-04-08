@@ -29,8 +29,8 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
       // Register listener for download progress events
       window.electronAPI.onDownloadProgress(handleDownloadProgress);
       
-      // Log to confirm API is available
-      console.log('Electron API is available in DownloadButton');
+    
+      console.log('api passsa aq');
     } else {
       console.error('Electron API is not available in DownloadButton');
     }
@@ -49,7 +49,7 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
         throw new Error('Electron API não disponível');
       }
 
-      console.log('Starting download for URL:', url);
+      console.log('download começando aq', url);
       setDownloadState('downloading');
       setProgress(5);
       setErrorMessage('');
