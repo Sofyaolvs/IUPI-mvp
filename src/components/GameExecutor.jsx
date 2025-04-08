@@ -10,20 +10,24 @@ const GameExecutor = ({ filePath }) => {
       setError('Nenhum caminho de arquivo fornecido');
       return;
     }
-
+    console.log("a")
     setIsExecuting(true);
     setError(null);
     setResult(null);
 
     try {
       // 🔌 Chamada via IPC para Electron
-      const response = await window.electron.ipcRenderer.invoke('execute-game', filePath);
+      console.log("b")
+      const response = await window.electronAPI.executeGame(filePath);
+
+      console.log(response)
+      console.log("c")
 
       if (response?.error) {
         throw new Error(response.error);
       }
 
-      setResult(response.output || 'Jogo iniciado com sucesso!');
+      setResult(response?.output || 'Jogo iniciado com sucesso!');
     } catch (err) {
       setError(err.message || 'Erro ao executar o jogo');
     } finally {

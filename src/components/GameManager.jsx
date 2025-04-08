@@ -6,6 +6,7 @@ import GameExecutor from './GameExecutor.jsx';
 const GameManager = () => {
   const [scrapedData, setScrapedData] = useState(null);
   const [downloadedGame, setDownloadedGame] = useState(null);
+  const [showExecutor, setShowExecutor] = useState(false); // novo estado
 
   const handleScrapingComplete = (data) => {
     console.log('[SCRAPER] Dados extraídos:', data);
@@ -15,6 +16,10 @@ const GameManager = () => {
   const handleDownloadComplete = (data) => {
     console.log('[DOWNLOADER] Jogo baixado:', data);
     setDownloadedGame(data);
+  };
+
+  const handleExecuteClick = () => {
+    setShowExecutor(true);
   };
 
   return (
@@ -39,8 +44,18 @@ const GameManager = () => {
         </>
       )}
 
-      {downloadedGame && (
-        <GameExecutor filePath={downloadedGame.path} />
+      {/* Botão pra executar jogo manualmente */}
+      <div className="text-center">
+        <button
+          onClick={handleExecuteClick}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+        >
+          Executar jogo
+        </button>
+      </div>
+
+      {showExecutor && (
+        <GameExecutor filePath="/home/kaike/Downloads/TerrorDaCaatinga.exe" />
       )}
     </div>
   );

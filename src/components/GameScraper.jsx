@@ -13,8 +13,9 @@ const GameScraper = () => {
       setLoading(true);
       setError('');
       const data = await window.electronAPI.scrapeGame(url);
-
+      
       if (data.error) throw new Error(data.error);
+
 
       setGameData({
         title: data.title,

@@ -217,31 +217,36 @@ ipcMain.handle('create-folder', async () => {
   }
 });
 
-// 🚀 Execução do jogo por caminho
 ipcMain.handle('execute-game', async (event, filePath) => {
+  console.log("🟡 Executando jogo:", filePath);
+
+  if (!fs.existsSync(filePath)) {
+    console.log("🔴 Arquivo não encontrado");
+    return { error: 'Arquivo não encontrado: ' + filePath };
+  }
+
+  const dirPath = path.dirname(filePath);
+  const infoFile = path.join(dirPath, 'info.txt');
+
+  try {
+    // Criar info.txt com await
+    await fs.promises.writeFile(infoFile, 'user');
+    console.log('🟢 info.txt criado com sucesso');
+  } catch (err) {
+    console.error('🔴 Erro ao criar info.txt:', err);
+    return { error: 'Erro ao criar info.txt: ' + err.message };
+  }
+
+  // Executar o jogo
   return new Promise((resolve) => {
-    if (!fs.existsSync(filePath)) {
-      resolve({ error: 'Arquivo não encontrado: ' + filePath });
-      return;
-    }
-    
-    const dirPath = path.dirname(filePath);
-    const infoFile = path.join(dirPath, 'info.txt');
-    
-    fs.writeFile(infoFile, 'user', (err) => {
-      if (err) {
-        console.error('Erro ao criar info.txt:', err);
-      } else {
-        console.log('info.txt criado.');
-      }
-    });
-    
     execFile(filePath, (error, stdout, stderr) => {
       if (error) {
+        console.error("🔴 Erro ao executar:", stderr || error.message);
         resolve({ error: stderr || error.message });
-        return;
+      } else {
+        console.log("🟢 Jogo executado com sucesso");
+        resolve({ output: stdout || 'Jogo executado com sucesso!' });
       }
-      resolve({ output: stdout || 'Jogo executado com sucesso!' });
     });
   });
 });
