@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import GameScraper from './GameScraper.jsx';
-// import GameDownloader from './GameDownloader.jsx';
 import GameExecutor from './GameExecutor.jsx';
+import DownloadButton from './DownloadButton.jsx';
 
 const GameManager = () => {
   const [scrapedData, setScrapedData] = useState(null);
@@ -32,7 +32,7 @@ const GameManager = () => {
           </div>
 
           {/* Mostra botão de download */}
-          <GameDownloader 
+          <DownloadButton 
             url={scrapedData.downloadUrl} 
             onDownloadComplete={handleDownloadComplete} 
           />

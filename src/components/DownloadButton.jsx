@@ -1,27 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
-import '../css/DownloadButton.css';
 
-const DownloadButton = ({ gameUrl, className }) => {
+const DownloadButton = ({ url, onDownloadComplete }) => {
   const [downloadState, setDownloadState] = useState('idle'); 
   const [progress, setProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    // Function to handle download progress events from main process
     const handleDownloadProgress = (event, progressData) => {
+      console.log('Download progress:', progressData);
       setProgress(progressData.percent || 0);
+      
       if (progressData.status === 'extracting') {
         setDownloadState('extracting');
+      } else if (progressData.status === 'complete') {
+        setDownloadState('completed');
+      } else if (progressData.status === 'error') {
+        setDownloadState('error');
+        setErrorMessage(progressData.error || 'Erro durante o download');
+      } else if (progressData.status === 'downloading') {
+        setDownloadState('downloading');
       }
     };
 
     if (window.electronAPI) {
+      // Register listener for download progress events
       window.electronAPI.onDownloadProgress(handleDownloadProgress);
+      
+      // Log to confirm API is available
+      console.log('Electron API is available in DownloadButton');
+    } else {
+      console.error('Electron API is not available in DownloadButton');
     }
 
     return () => {
       if (window.electronAPI) {
+        // Remove listener when component unmounts
         window.electronAPI.removeDownloadProgress(handleDownloadProgress);
       }
     };
@@ -29,29 +45,41 @@ const DownloadButton = ({ gameUrl, className }) => {
 
   const handleDownload = async () => {
     try {
+      if (!window.electronAPI) {
+        throw new Error('Electron API não disponível');
+      }
+
+      console.log('Starting download for URL:', url);
       setDownloadState('downloading');
       setProgress(5);
       setErrorMessage('');
    
-      const result = await window.electronAPI.downloadGame(gameUrl);
+      // Start game download
+      const result = await window.electronAPI.downloadGame(url);
+      console.log('Download result:', result);
       
       if (result.success) {
         setDownloadPath(result.path);
         setDownloadState('completed');
         setProgress(100);
+        
+        // Notify parent component about completed download
+        if (onDownloadComplete) {
+          onDownloadComplete(result);
+        }
       } else {
-        setErrorMessage(result.message || 'Download failed');
+        setErrorMessage(result.message || 'Falha no download');
         setDownloadState('error');
       }
     } catch (error) {
-      console.error('Download error:', error);
-      setErrorMessage(error.message || 'Download failed unexpectedly');
+      console.error('Erro no download:', error);
+      setErrorMessage(error.message || 'Falha inesperada no download');
       setDownloadState('error');
     }
   };
 
   const runGame = () => {
-    if (downloadPath) {
+    if (downloadPath && window.electronAPI) {
       window.electronAPI.openFileByPath(downloadPath);
     }
   };
@@ -70,13 +98,13 @@ const DownloadButton = ({ gameUrl, className }) => {
     switch (downloadState) {
       case 'downloading':
       case 'extracting':
-        return <Loader className="icon spinning" />;
+        return <Loader className="animate-spin" />;
       case 'completed':
-        return <Play className="icon" />;
+        return <Play />;
       case 'error':
-        return <AlertTriangle className="icon" />;
+        return <AlertTriangle />;
       default:
-        return <Download className="icon" />;
+        return <Download />;
     }
   };
 
@@ -89,35 +117,38 @@ const DownloadButton = ({ gameUrl, className }) => {
   };
 
   const getButtonClass = () => {
-    let base = 'download-button';
-    if (downloadState === 'completed') return `${base} completed`;
-    if (downloadState === 'error') return `${base} error`;
-    return base;
+    let base = 'flex items-center justify-center gap-2 px-4 py-2 rounded';
+    if (downloadState === 'completed') return `${base} bg-green-500 text-white`;
+    if (downloadState === 'error') return `${base} bg-red-500 text-white`;
+    return `${base} bg-blue-500 text-white`;
   };
 
   return (
-    <div className={`download-wrapper ${className || ''}`}>
+    <div className="flex flex-col gap-2">
       <button
         onClick={buttonAction}
         disabled={downloadState === 'downloading' || downloadState === 'extracting'}
-        className={`${getButtonClass()} ${downloadState === 'downloading' || downloadState === 'extracting' ? 'disabled' : ''}`}
+        className={`${getButtonClass()} ${downloadState === 'downloading' || downloadState === 'extracting' ? 'opacity-70 cursor-not-allowed' : ''}`}
       >
         {getButtonIcon()}
         {getButtonText()}
       </button>
 
       {(downloadState === 'downloading' || downloadState === 'extracting') && (
-        <div className="progress-bar">
-          <div className="progress" style={{ width: `${progress}%` }}></div>
+        <div className="w-full bg-gray-200 rounded-full overflow-hidden h-2">
+          <div 
+            className="bg-blue-500 h-full transition-all duration-300" 
+            style={{ width: `${progress}%` }}
+          />
         </div>
       )}
 
       {downloadState === 'completed' && (
-        <p className="message success">Jogo pronto para jogar!</p>
+        <p className="text-green-600 text-sm">Jogo pronto para jogar!</p>
       )}
 
       {downloadState === 'error' && (
-        <p className="message error">{errorMessage || 'Erro durante o download'}</p>
+        <p className="text-red-600 text-sm">{errorMessage || 'Erro durante o download'}</p>
       )}
     </div>
   );
