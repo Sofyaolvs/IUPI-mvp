@@ -67,7 +67,7 @@ const GameScraper = () => {
         <div className="scraper-error">{error}</div>
       ) : gameData ? (
         <div className="scraper-grid">
-          {/* Imagens - carrossel lateral */}
+         
           <div className="scraper-carousel">
             {gameData.images.map((src, i) => (
               <div key={i} className="scraper-image-wrapper">
@@ -84,9 +84,7 @@ const GameScraper = () => {
           <div className="scraper-content">
             <div className="scraper-card">
               <h2 className="scraper-game-title">{gameData.title}</h2>
-              {gameData.developer && (
-                <p className="scraper-developer">Desenvolvedor: {gameData.developer}</p>
-              )}
+              
               {gameData.tags?.length > 0 && (
                 <div className="scraper-tags">
                   {gameData.tags.map((tag, i) => (
@@ -114,7 +112,7 @@ const GameScraper = () => {
           </div>
         </div>
       ) : (
-        <p className="scraper-placeholder">Insira uma URL de jogo no itch.io para buscar os dados.</p>
+        <p className="scraper-placeholder">Insira uma URL para buscar os dados.</p>
       )}
     </div>
   );

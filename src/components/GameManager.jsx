@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import GameScraper from './GameScraper.jsx';
-import GameDownloader from './GameDownloader.jsx';
+// import GameDownloader from './GameDownloader.jsx';
 import GameExecutor from './GameExecutor.jsx';
 
 const GameManager = () => {

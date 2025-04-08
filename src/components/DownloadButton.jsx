@@ -1,25 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Loader, CheckCircle, AlertTriangle, Play } from 'lucide-react';
+import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
+import '../css/DownloadButton.css';
 
 const DownloadButton = ({ gameUrl, className }) => {
   const [downloadState, setDownloadState] = useState('idle'); 
   const [progress, setProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [gameInfo, setGameInfo] = useState(null);
-
 
   useEffect(() => {
-    
     const handleDownloadProgress = (event, progressData) => {
       setProgress(progressData.percent || 0);
-      
       if (progressData.status === 'extracting') {
         setDownloadState('extracting');
       }
     };
 
-   
     if (window.electronAPI) {
       window.electronAPI.onDownloadProgress(handleDownloadProgress);
     }
@@ -56,23 +52,17 @@ const DownloadButton = ({ gameUrl, className }) => {
 
   const runGame = () => {
     if (downloadPath) {
-     
       window.electronAPI.openFileByPath(downloadPath);
     }
   };
 
   const getButtonText = () => {
     switch (downloadState) {
-      case 'downloading':
-        return 'Baixando...';
-      case 'extracting':
-        return 'Extraindo...';
-      case 'completed':
-        return 'Jogar';
-      case 'error':
-        return 'Tentar Novamente';
-      default:
-        return 'Download';
+      case 'downloading': return 'Baixando...';
+      case 'extracting': return 'Extraindo...';
+      case 'completed': return 'Jogar';
+      case 'error': return 'Tentar Novamente';
+      default: return 'Download';
     }
   };
 
@@ -80,13 +70,13 @@ const DownloadButton = ({ gameUrl, className }) => {
     switch (downloadState) {
       case 'downloading':
       case 'extracting':
-        return <Loader className="mr-2 h-4 w-4 animate-spin" />;
+        return <Loader className="icon spinning" />;
       case 'completed':
-        return <Play className="mr-2 h-4 w-4" />;
+        return <Play className="icon" />;
       case 'error':
-        return <AlertTriangle className="mr-2 h-4 w-4" />;
+        return <AlertTriangle className="icon" />;
       default:
-        return <Download className="mr-2 h-4 w-4" />;
+        return <Download className="icon" />;
     }
   };
 
@@ -98,38 +88,36 @@ const DownloadButton = ({ gameUrl, className }) => {
     }
   };
 
+  const getButtonClass = () => {
+    let base = 'download-button';
+    if (downloadState === 'completed') return `${base} completed`;
+    if (downloadState === 'error') return `${base} error`;
+    return base;
+  };
+
   return (
-    <div className="flex flex-col w-full max-w-xs">
+    <div className={`download-wrapper ${className || ''}`}>
       <button
         onClick={buttonAction}
         disabled={downloadState === 'downloading' || downloadState === 'extracting'}
-        className={`flex items-center justify-center px-4 py-2 rounded-md text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-          downloadState === 'completed' 
-            ? 'bg-green-600 hover:bg-green-700' 
-            : downloadState === 'error'
-              ? 'bg-red-600 hover:bg-red-700'
-              : 'bg-blue-600 hover:bg-blue-700'
-        } ${downloadState === 'downloading' || downloadState === 'extracting' ? 'opacity-90 cursor-not-allowed' : ''} ${className || ''}`}
+        className={`${getButtonClass()} ${downloadState === 'downloading' || downloadState === 'extracting' ? 'disabled' : ''}`}
       >
         {getButtonIcon()}
         {getButtonText()}
       </button>
-      
+
       {(downloadState === 'downloading' || downloadState === 'extracting') && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
-            style={{ width: `${progress}%` }}
-          ></div>
+        <div className="progress-bar">
+          <div className="progress" style={{ width: `${progress}%` }}></div>
         </div>
       )}
-      
+
       {downloadState === 'completed' && (
-        <p className="text-sm text-green-600 mt-2">Jogo pronto para jogar!</p>
+        <p className="message success">Jogo pronto para jogar!</p>
       )}
-      
+
       {downloadState === 'error' && (
-        <p className="text-sm text-red-600 mt-2">{errorMessage || 'Erro durante o download'}</p>
+        <p className="message error">{errorMessage || 'Erro durante o download'}</p>
       )}
     </div>
   );
