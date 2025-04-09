@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
+import '../css/DownloadButton.css'
 
 const DownloadButton = ({ url, onDownloadComplete }) => {
   const [downloadState, setDownloadState] = useState('idle'); 
@@ -48,13 +49,22 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
       if (!window.electronAPI) {
         throw new Error('Electron API não disponível');
       }
-
-      console.log('download começando aq', url);
+  
+      // Validação mais simples e correta da URL (caindo aq qnd tenmta baixar!!!) sendo q a url nn tá vazia???
+      if (!url || typeof url !== 'string') {
+        throw new Error('URL vazia ou inválida');
+      }
+  
+      // Verificar se é uma URL do Itch.io 
+      if (!url.includes('itch.io')) {
+        throw new Error('Por favor, forneça uma URL válida do Itch.io');
+      }
+  
+      console.log('download começando com URL:', url);
       setDownloadState('downloading');
       setProgress(5);
       setErrorMessage('');
-   
-      // Start game download
+     
       const result = await window.electronAPI.downloadGame(url);
       console.log('Download result:', result);
       
@@ -63,7 +73,6 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
         setDownloadState('completed');
         setProgress(100);
         
-        // Notify parent component about completed download
         if (onDownloadComplete) {
           onDownloadComplete(result);
         }
@@ -77,7 +86,6 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
       setDownloadState('error');
     }
   };
-
   const runGame = () => {
     if (downloadPath && window.electronAPI) {
       window.electronAPI.openFileByPath(downloadPath);
@@ -98,13 +106,13 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
     switch (downloadState) {
       case 'downloading':
       case 'extracting':
-        return <Loader className="animate-spin" />;
+        return <Loader className="icon spinning" />;
       case 'completed':
-        return <Play />;
+        return <Play className="icon" />;
       case 'error':
-        return <AlertTriangle />;
+        return <AlertTriangle className="icon" />;
       default:
-        return <Download />;
+        return <Download className="icon" />;
     }
   };
 
@@ -117,38 +125,40 @@ const DownloadButton = ({ url, onDownloadComplete }) => {
   };
 
   const getButtonClass = () => {
-    let base = 'flex items-center justify-center gap-2 px-4 py-2 rounded';
-    if (downloadState === 'completed') return `${base} bg-green-500 text-white`;
-    if (downloadState === 'error') return `${base} bg-red-500 text-white`;
-    return `${base} bg-blue-500 text-white`;
+    let baseClass = 'download-button';
+    if (downloadState === 'completed') return `${baseClass} completed`;
+    if (downloadState === 'error') return `${baseClass} error`;
+    if (downloadState === 'downloading' || downloadState === 'extracting') 
+      return `${baseClass} disabled`;
+    return baseClass;
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="download-wrapper">
       <button
         onClick={buttonAction}
         disabled={downloadState === 'downloading' || downloadState === 'extracting'}
-        className={`${getButtonClass()} ${downloadState === 'downloading' || downloadState === 'extracting' ? 'opacity-70 cursor-not-allowed' : ''}`}
+        className={getButtonClass()}
       >
         {getButtonIcon()}
         {getButtonText()}
       </button>
 
       {(downloadState === 'downloading' || downloadState === 'extracting') && (
-        <div className="w-full bg-gray-200 rounded-full overflow-hidden h-2">
+        <div className="progress-bar">
           <div 
-            className="bg-blue-500 h-full transition-all duration-300" 
+            className="progress" 
             style={{ width: `${progress}%` }}
           />
         </div>
       )}
 
       {downloadState === 'completed' && (
-        <p className="text-green-600 text-sm">Jogo pronto para jogar!</p>
+        <p className="message success">Jogo pronto para jogar!</p>
       )}
 
       {downloadState === 'error' && (
-        <p className="text-red-600 text-sm">{errorMessage || 'Erro durante o download'}</p>
+        <p className="message error">{errorMessage || 'Erro durante o download'}</p>
       )}
     </div>
   );

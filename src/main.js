@@ -58,7 +58,15 @@ ipcMain.handle('scrape-game', async (event, gameUrl) => {
 // ⬇️ Download automático do jogo
 ipcMain.handle('download-game', async (event, gameUrl) => {
   try {
-    // Cria a pasta 'jogos' no diretório do aplicativo
+    // Verificação adicional da URL
+    if (!gameUrl || typeof gameUrl !== 'string' || !gameUrl.match(/^https?:\/\/.+/)) {
+      return {
+        success: false,
+        message: 'URL inválida fornecida para download'
+      };
+    }
+    
+    // Resto do seu código...
     const jogosDir = path.join(app.getAppPath(), 'jogos');
     
     if (!fs.existsSync(jogosDir)) {
@@ -68,51 +76,20 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     
     // Envia atualizações de progresso para o frontend
     const sendProgress = (percent, status, error = null) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('download-progress', { 
-          percent, 
-          status,
-          error
-        });
-      }
+      // ...
     };
 
     // Inicia processo com 10%
     sendProgress(10, 'downloading');
     
+    // Adicione um log para ver a URL exata
+    console.log('Iniciando download da URL:', gameUrl);
+    
     // Inicia o download usando o módulo downloader
     const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
     
-    if (!downloadResult.success) {
-      sendProgress(0, 'error', downloadResult.message);
-      return downloadResult;
-    }
+    // Resto do seu código...
     
-    // Se o download foi bem-sucedido
-    sendProgress(100, 'complete');
-    
-    // Retorna informações sobre o arquivo baixado
-    // Verificamos se há arquivos executáveis entre os baixados
-    let exePath = '';
-    
-    if (downloadResult.files && downloadResult.files.length > 0) {
-      // Procura por arquivos .exe
-      const exeFile = downloadResult.files.find(file => file.toLowerCase().endsWith('.exe'));
-      
-      if (exeFile) {
-        exePath = exeFile;
-      } else {
-        // Se não encontrou .exe, usa o primeiro arquivo
-        exePath = downloadResult.files[0];
-      }
-    }
-    
-    return {
-      success: true,
-      message: 'Download concluído com sucesso!',
-      path: exePath,
-      allFiles: downloadResult.files
-    };
   } catch (error) {
     console.error('Erro no download:', error);
     
