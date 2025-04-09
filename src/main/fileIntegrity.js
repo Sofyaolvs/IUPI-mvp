@@ -80,6 +80,15 @@ async function extractZipFile(zipPath, extractPath, progressCallback = () => {})
 
       zipfile.on('end', () => {
         progressCallback({ percent: 100, status: 'extraction_complete' });
+        
+        // Deletar o arquivo ZIP após extração
+        try {
+          fs.unlinkSync(zipPath);
+          console.log(`Arquivo ZIP removido após extração: ${zipPath}`);
+        } catch (deleteError) {
+          console.error(`Erro ao deletar arquivo ZIP: ${deleteError.message}`);
+        }
+        
         resolve(extractedFiles);
       });
 
