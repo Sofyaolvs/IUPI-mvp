@@ -5,7 +5,7 @@ const os = require('os');
 
 async function downloadGameFromItch(url, customDownloadPath = null) {
   // Usa o caminho personalizado ou padrão
-  const downloadPath = customDownloadPath || path.join(os.homedir(), 'Downloads');
+  const downloadPath = path.join(os.homedir(), 'Downloads');
   
   console.log(`Iniciando download de ${url} para ${downloadPath}`);
   
