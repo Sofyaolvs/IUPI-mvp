@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import '../css/GameScraper.css';
+// Importar a imagem diretamente - este é o método recomendado no React
+import defaultImage from '../assets/Telahorizontal.svg';
+
 const GameScraper = () => {
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gameData, setGameData] = useState(null);
   
-  // Usando uma URL externa para imagem placeholder
-  const DEFAULT_IMAGE = 'https://github.com/Sofyaolvs/IUPI-mvp/blob/zip_delete/src/assets/Telahorizontal.svg';
+  // Usando a imagem importada
+  const DEFAULT_IMAGE = defaultImage;
 
   const fetchGameInfo = async (url) => {
     try {
