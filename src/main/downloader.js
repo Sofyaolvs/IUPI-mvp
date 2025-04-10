@@ -40,93 +40,8 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
     await page.goto(url, { waitUntil: 'networkidle2' });
     console.log(`Navegou para ${url}`);
     
-    // Selectors for different types of download buttons on Itch.io
-    const seletor = 
-      'a.button.download_btn, ' +
-      'a[href*=".exe"], ' + 
-      'a[download], ' +
-      '.download-button, ' + 
-      '#download-button, ' +
-      'a.btn-download, ' +
-      'button.download, ' +
-      'a[href*=".zip"], ' +
-      'a[href*=".msi"], ' +
-      'a[href*="download"]';
-    
-    console.log(`Procurando pelo botão usando o seletor ${seletor}`);
-    
-    try {
-      await page.waitForSelector(seletor, { visible: true, timeout: 10000 });
-      console.log("Botão encontrado");
-      
-      await page.click(seletor);
-      console.log("Clicou no botão de download");
-    } catch (error) {
-      console.log(`Erro ao clicar no botão: ${error}`);
-      
-      // Try to find alternative buttons
-      const downloadLinks = await page.evaluate(() => {
-        const links = Array.from(document.querySelectorAll('a'));
-        return links
-          .filter(link => {
-            const href = (link.href || '').toLowerCase();
-            const text = (link.innerText || '').toLowerCase();
-            return (href.includes('.exe') || 
-                   href.includes('download') || 
-                   href.includes('.zip') || 
-                   text.includes('download') ||
-                   text.includes('baixar')) &&
-                   link.offsetWidth > 0 && 
-                   link.offsetHeight > 0;
-          })
-          .map((link, index) => ({
-            index,
-            href: link.href,
-            text: link.innerText,
-            position: link.getBoundingClientRect()
-          }));
-      });
-      
-      console.log("Possíveis links encontrados: ", downloadLinks);
-      
-      if (downloadLinks.length > 0) {
-        let bestLinkIndex = 0;
-        let bestScore = 0;
-
-        downloadLinks.forEach((link, index) => {
-          let score = 0;
-          const href = link.href.toLowerCase();
-          const text = link.text.toLowerCase();
-
-          if (href.includes('.exe')) score += 5;
-          if (href.includes('.zip')) score += 4;
-          if (text.includes('download now')) score += 3;
-          if (text.includes('download')) score += 2;
-          if (text.includes('baixar')) score += 2;
-          if (link.position.y < 500) score += 1; // Links more to the top have priority
-          
-          if (score > bestScore) {
-            bestScore = score;
-            bestLinkIndex = index;
-          }
-        });
-
-        const bestLink = downloadLinks[bestLinkIndex];
-
-        try {
-          await page.click(`a[href="${bestLink.href}"]`);
-          console.log("Clicou no botão de download alternativo");
-        } catch (clickError) {
-          await page.evaluate((href) => {
-            const links = Array.from(document.querySelectorAll('a'));
-            const targetLink = links.find(link => link.href === href);
-            if (targetLink) targetLink.click();
-          }, bestLink.href);
-        }
-      } else {
-        throw new Error('Não foi possível encontrar o botão de download');
-      }
-    }
+    await page.waitForSelector('a.button.download_btn', { timeout: 5000 });
+    await page.click('a.button.download_btn');
     
     // Wait for download to start
     console.log('Aguardando download...');
@@ -289,5 +204,10 @@ async function scrapeItchGame(url) {
 // downloadGameFromItch('https://example-game.itch.io/game-name')
 //   .then(result => console.log(result))
 //   .catch(error => console.error(error));
+
+
+
+
+
 
 module.exports = { downloadGameFromItch, scrapeItchGame };

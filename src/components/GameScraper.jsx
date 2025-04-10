@@ -42,6 +42,7 @@ const GameScraper = () => {
     }
   };
 
+
   const handleImageError = (e) => {
     // Usando a imagem base64 embutida que sempre funcionará
     e.target.src = DEFAULT_IMAGE;
