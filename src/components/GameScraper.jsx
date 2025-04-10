@@ -7,6 +7,9 @@ const GameScraper = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gameData, setGameData] = useState(null);
+  
+
+  const DEFAULT_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
   const fetchGameInfo = async (url) => {
     try {
@@ -20,7 +23,7 @@ const GameScraper = () => {
         title: data.title,
         description: data.description,
         developer: data.developer,
-        images: data.images.length > 0 ? data.images : ['/api/placeholder/400/300'],
+        images: data.images.length > 0 ? data.images : [DEFAULT_IMAGE],
         tags: data.tags || [],
         url
       });
@@ -40,9 +43,18 @@ const GameScraper = () => {
     }
   };
 
+  const handleImageError = (e) => {
+    // Usando a imagem base64 embutida que sempre funcionará
+    e.target.src = DEFAULT_IMAGE;
+    
+    e.target.style.maxWidth = '100%';
+    e.target.style.height = 'auto';
+    e.target.alt = 'Imagem não disponível';
+  };
+
   return (
     <div className="scraper-container">
-      <h1 className="scraper-title">Scraping</h1>
+      <h1 className="scraper-title">IUPI</h1>
 
       <form onSubmit={handleSubmit} className="scraper-form">
         <input
@@ -75,6 +87,7 @@ const GameScraper = () => {
                   src={src}
                   alt={`Screenshot ${i + 1} de ${gameData.title}`}
                   className="scraper-image"
+                  onError={handleImageError}
                 />
               </div>
             ))}

@@ -23,13 +23,24 @@ const createWindow = () => {
     },
   });
 
+  // Set Content Security Policy to allow images from itch.zone and other domains
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; img-src 'self' data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *"]
+      }
+    });
+  });
+
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   
   // Abre DevTools em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
-  }
+ }
 };
+
 
 app.whenReady().then(() => {
   createWindow();
