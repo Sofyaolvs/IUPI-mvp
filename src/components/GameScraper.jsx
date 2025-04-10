@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
-import DownloadButton from '../components/DownloadButton.jsx'
 import '../css/GameScraper.css';
-
 const GameScraper = () => {
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gameData, setGameData] = useState(null);
   
-
-  const DEFAULT_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  // Usando uma URL externa para imagem placeholder
+  const DEFAULT_IMAGE = 'https://github.com/Sofyaolvs/IUPI-mvp/blob/zip_delete/src/assets/Telahorizontal.svg';
 
   const fetchGameInfo = async (url) => {
     try {
       setLoading(true);
       setError('');
       const data = await window.electronAPI.scrapeGame(url);
-
+      
       if (data.error) throw new Error(data.error);
-
+      
       setGameData({
         title: data.title,
         description: data.description,
@@ -44,18 +42,48 @@ const GameScraper = () => {
   };
 
   const handleImageError = (e) => {
-    // Usando a imagem base64 embutida que sempre funcionará
     e.target.src = DEFAULT_IMAGE;
-    
     e.target.style.maxWidth = '100%';
     e.target.style.height = 'auto';
     e.target.alt = 'Imagem não disponível';
   };
 
+  // Componente para renderizar imagens com fallback
+  const ImageWithFallback = ({ src, alt, index }) => {
+    return (
+      <div className="scraper-image-wrapper">
+        <img
+          src={src}
+          alt={alt}
+          className="scraper-image"
+          onError={handleImageError}
+        />
+      </div>
+    );
+  };
+
+  // Botão de download separado como componente interno
+  const DownloadButton = ({ gameUrl }) => {
+    const handleDownload = async () => {
+      try {
+        await window.electronAPI.downloadGame(gameUrl);
+      } catch (err) {
+        console.error('Erro ao baixar jogo:', err);
+        alert('Não foi possível baixar o jogo. Tente novamente mais tarde.');
+      }
+    };
+
+    return (
+      <button onClick={handleDownload} className="scraper-download-button">
+        Baixar Jogo
+      </button>
+    );
+  };
+
   return (
     <div className="scraper-container">
       <h1 className="scraper-title">IUPI</h1>
-
+      
       <form onSubmit={handleSubmit} className="scraper-form">
         <input
           type="text"
@@ -72,31 +100,35 @@ const GameScraper = () => {
           Buscar
         </button>
       </form>
-
+      
       {loading ? (
         <p className="scraper-loading">Carregando informações do jogo...</p>
       ) : error ? (
         <div className="scraper-error">{error}</div>
       ) : gameData ? (
         <div className="scraper-grid">
-         
+          {/* Carrossel de imagens */}
           <div className="scraper-carousel">
             {gameData.images.map((src, i) => (
-              <div key={i} className="scraper-image-wrapper">
-                <img
-                  src={src}
-                  alt={`Screenshot ${i + 1} de ${gameData.title}`}
-                  className="scraper-image"
-                  onError={handleImageError}
-                />
-              </div>
+              <ImageWithFallback
+                key={i}
+                src={src}
+                alt={`Screenshot ${i + 1} de ${gameData.title}`}
+                index={i}
+              />
             ))}
           </div>
-
+          
           {/* Info do jogo */}
           <div className="scraper-content">
             <div className="scraper-card">
               <h2 className="scraper-game-title">{gameData.title}</h2>
+              
+              {gameData.developer && (
+                <p className="scraper-developer">
+                  <strong>Desenvolvedor:</strong> {gameData.developer}
+                </p>
+              )}
               
               {gameData.tags?.length > 0 && (
                 <div className="scraper-tags">
@@ -108,18 +140,17 @@ const GameScraper = () => {
                 </div>
               )}
             </div>
-
+            
             <div className="scraper-section">
               <h3 className="scraper-section-title">Descrição</h3>
               <div className="scraper-card">
                 <p>{gameData.description}</p>
               </div>
             </div>
-
+            
             <div className="scraper-download-container">
               <DownloadButton
-                gameUrl={gameData.url} 
-                className="scraper-download-button"
+                gameUrl={gameData.url}
               />
             </div>
           </div>
