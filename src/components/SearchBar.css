@@ -1,0 +1,47 @@
+.search-bar {
+    margin: 0 20px;
+  }
+  
+  .search-bar form {
+    display: flex;
+    position: relative;
+  }
+  
+  .search-bar input {
+    width: 250px;
+    padding: 8px 40px 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+  }
+  
+  .search-bar input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  }
+  
+  .search-bar button {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: #555;
+    font-size: 16px;
+  }
+  
+  .search-bar button:hover {
+    color: #3498db;
+  }
+  
+  .search-icon {
+    display: inline-block;
+  }
+
+  .background-demo--2 {
+    background-image: url('https://api.iconify.design/fluent-emoji-flat/memo.svg');
+ }

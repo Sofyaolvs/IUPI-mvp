@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import GameScraper from './GameScraper.jsx';
-import GameExecutor from './GameExecutor.jsx';
-import DownloadButton from './DownloadButton.jsx';
+import { useNavigate } from 'react-router-dom';
+import GameScraper from '../components/GameScraper.jsx';
+import GameExecutor from '../components/GameExecutor.jsx';
+import DownloadButton from '../components/DownloadButton.jsx';
 
 const GameManager = () => {
+  const navigate = useNavigate();
   const [scrapedData, setScrapedData] = useState(null);
   const [downloadedGame, setDownloadedGame] = useState(null);
+
+  const goToLibrary = () => {
+    navigate('/');
+  };
 
   const handleScrapingComplete = (data) => {
     console.log('[SCRAPER] Dados extraídos:', data);
@@ -19,6 +25,14 @@ const GameManager = () => {
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-4">
+      <div style={{ marginBottom: '15px' }}>
+        <button 
+          onClick={goToLibrary}
+          style={{ padding: '8px 16px', backgroundColor: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Voltar para Biblioteca
+        </button>
+      </div>
       {!scrapedData && (
         <GameScraper onScrapingComplete={handleScrapingComplete} />
       )}
