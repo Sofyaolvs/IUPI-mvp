@@ -79,7 +79,7 @@ async function moveFile(source, destination) {
 async function renameFile(filePath, newName) {
   try {
     if (!fs.existsSync(filePath)) {
-      throw new Error(`Arquivo não encontrado: ${filePath}`);
+      throw new Error(`Arquivo não encontrad444444o: ${filePath}`);
     }
 
     const dirPath = path.dirname(filePath);
@@ -108,7 +108,7 @@ async function extractArchive(archivePath, extractPath, progressCallback = () =>
   try {
     // Verificar se o arquivo existe
     if (!fs.existsSync(archivePath)) {
-      throw new Error(`Arquivo não encontrado: ${archivePath}`);
+      throw new Error(`Arquivo não encontradozzzzzzz: ${archivePath}`);
     }
 
     // Verificar a extensão do arquivo

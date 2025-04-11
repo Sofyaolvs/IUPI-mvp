@@ -123,20 +123,20 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
 
   const runGame = () => {
     try {
-      // Primeiro tenta usar o caminho do executável se disponível
-      if (executablePath && window.electronAPI) {
+      if (!window.electronAPI) {
+        setErrorMessage('API do Electron não disponível para abrir o jogo');
+        setDownloadState('error');
+        return;
+      }
+      console.log(executablePath)
+      if (executablePath) {
         console.log('Executando jogo com executável:', executablePath);
         window.electronAPI.openFileByPath(executablePath);
-      } 
-      // Se não tiver o executável, tenta usar o caminho da pasta para procurar o executável
-      else if (downloadPath && window.electronAPI) {
-        console.log('Tentando abrir jogo com diretório:', downloadPath);
+      } else if (downloadPath) {
+        console.log('Executável não encontrado. Abrindo pasta do jogo:', downloadPath);
         window.electronAPI.openFileByPath(downloadPath);
-      } else if (!downloadPath && !executablePath) {
-        setErrorMessage('Caminho do jogo não disponível');
-        setDownloadState('error');
       } else {
-        setErrorMessage('API do Electron não disponível para abrir o jogo');
+        setErrorMessage('Caminho do jogo não disponível');
         setDownloadState('error');
       }
     } catch (error) {
@@ -145,6 +145,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
       setDownloadState('error');
     }
   };
+  
 
   const getButtonText = () => {
     switch (downloadState) {

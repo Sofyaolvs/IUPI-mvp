@@ -145,7 +145,7 @@ function verifyFileSize(filePath, expectedSize) {
  */
 async function verifyFileIntegrity(filePath, options = {}) {
   if (!fs.existsSync(filePath)) {
-    return { valid: false, reason: 'Arquivo não encontrado' };
+    return { valid: false, reason: 'Arquivo não encontraaaaado' };
   }
   
   const result = {

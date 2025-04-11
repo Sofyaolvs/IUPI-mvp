@@ -156,27 +156,25 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     
     const progressInterval = simulateProgress();
     
-    // Inicia o download usando o módulo downloader
     const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
-    
-    // Limpa o intervalo de simulação
     clearInterval(progressInterval);
-    
-    console.log('Resultado do download:', downloadResult);
-    
+
     if (downloadResult.success) {
       sendProgress(100, 'complete');
-      
+
+      // Procurar arquivo .exe
+      const exeFile = downloadResult.files?.find(f => f.endsWith('.exe'));
+
       return {
         success: true,
-        path: downloadResult.files && downloadResult.files.length > 0 ? 
-              downloadResult.files[0] : downloadResult.path,
+        executablePath: exeFile || null, // ← importante: retorna só o executável
+        path: downloadResult.path,
         files: downloadResult.files,
         message: 'Download concluído com sucesso!'
       };
     } else {
       sendProgress(0, 'error', downloadResult.message || 'Falha no download');
-      
+
       return {
         success: false,
         message: downloadResult.message || 'Falha no download do jogo'
@@ -184,19 +182,15 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     }
   } catch (error) {
     console.error('Erro no download:', error);
-    
-    // Envia atualização de erro
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('download-progress', { 
-        percent: 0, 
-        status: 'error',
-        error: error.message
-      });
-    }
-    
-    return { 
+    mainWindow?.webContents.send('download-progress', {
+      percent: 0,
+      status: 'error',
+      error: error.message
+    });
+
+    return {
       success: false,
-      message: `Erro ao iniciar download do jogo: ${error.message}` 
+      message: `Erro ao iniciar download do jogo: ${error.message}`
     };
   }
 });
@@ -205,7 +199,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
 ipcMain.handle('execute-game', async (event, filePath) => {
   return new Promise((resolve) => {
     if (!fs.existsSync(filePath)) {
-      resolve({ error: 'Arquivo não encontrado: ' + filePath });
+      resolve({ error: 'Arquivo não encontra3wsdo: ' + filePath });
       return;
     }
     

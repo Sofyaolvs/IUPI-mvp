@@ -19,8 +19,9 @@ function sanitizeFileName(name) {
 
 // Função para verificar se o jogo já está instalado
 function isGameInstalled(gameTitle) {
-  const gamesDir = path.join(os.homedir(), 'IUPI-mvp/lib');
+  const gamesDir = path.join(process.cwd(), 'lib');
 
+  console.log("Verificando se o jogo está instalado em: " + gamesDir);
   if (!fs.existsSync(gamesDir)) {
     return { installed: false, executablePath: null };
   }
@@ -214,7 +215,7 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
     }
     
     // Definir pasta de download
-    const baseDownloadPath = path.join(os.homedir(), 'IUPI-mvp/lib');
+    const baseDownloadPath = path.join(process.cwd(), 'lib');
     const downloadPath = path.join(baseDownloadPath, gameName);
     
     console.log(`Iniciando download de ${url} para ${downloadPath}`);
@@ -249,7 +250,7 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
     await page.goto(url, { waitUntil: 'networkidle2' });
     console.log(`Navegou para ${url}`);
     
-    await page.waitForSelector('a.button.download_btn', { timeout: 10000 });
+    await page.waitForSelector('a.button.download_btn', { timeout: 60000 });
     await page.click('a.button.download_btn');
     
     // Esperar para o download iniciar
@@ -393,46 +394,34 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
   }
 }
 
-// Função para executar um jogo
-async function launchGame(executablePath) {
-  try {
-    // Verificar se o caminho fornecido é válido
-    if (!executablePath) {
-      throw new Error('Caminho do executável não fornecido');
-    }
-    
-    // Se o caminho terminar com .zip, procurar por executáveis no diretório pai
-    if (executablePath.toLowerCase().endsWith('.zip')) {
-      const dirPath = path.dirname(executablePath);
-      console.log(`O caminho fornecido é um arquivo ZIP. Procurando executáveis em: ${dirPath}`);
-      
-      const newExecutablePath = findExecutableInFolder(dirPath);
-      if (newExecutablePath) {
-        executablePath = newExecutablePath;
-        console.log(`Executável encontrado: ${executablePath}`);
-      } else {
-        throw new Error('Não foi possível encontrar um executável no diretório do jogo');
-      }
-    }
-    
-    const { exec } = require('child_process');
-    console.log(`Iniciando jogo: ${executablePath}`);
-    
-    exec(`"${executablePath}"`, (error, stdout, stderr) => {
+function launchGame(filePath) {
+  if (fs.existsSync(filePath)) {
+    console.log(`Executando arquivo: ${filePath}`);
+
+    // Executa o arquivo
+    exec(`"${filePath}"`, (error, stdout, stderr) => {
       if (error) {
-        console.error(`Erro ao executar o jogo: ${error.message}`);
+        console.error(`Erro ao executar o arquivo: ${error.message}`);
         return;
       }
-      console.log(`Jogo iniciado com sucesso!`);
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+
+      // Envia resultado para o renderer
+      if (mainWindow) {
+        mainWindow.webContents.send('execution-result', stdout);
+      }
     });
-    
-    return true;
-  } catch (error) {
-    console.error('Erro ao iniciar o jogo:', error);
-    return false;
+  } else {
+    console.error('O arquivo especificado não foi encontrado.');
+    if (mainWindow) {
+      mainWindow.webContents.send('execution-result', 'Arquivo não encontrado: ' + filePath);
+    }
   }
 }
-
 // Função para verificar se um jogo está instalado e retornar o botão adequado
 async function checkGameStatus(gameUrl) {
   try {
