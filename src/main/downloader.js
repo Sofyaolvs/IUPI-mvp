@@ -19,7 +19,7 @@ function sanitizeFileName(name) {
 
 // Função para verificar se o jogo já está instalado
 function isGameInstalled(gameTitle) {
-  const gamesDir = path.join(__dirname, '../Jogos');
+  const gamesDir = path.join(os.homedir(), 'IUPI-mvp/lib');
 
   if (!fs.existsSync(gamesDir)) {
     return { installed: false, executablePath: null };
@@ -173,7 +173,7 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
     }
     
     // Definir pasta de download
-    const baseDownloadPath = path.join(__dirname, '../Jogos');
+    const baseDownloadPath = path.join(os.homedir(), 'IUPI-mvp/lib');
     const downloadPath = path.join(baseDownloadPath, gameName);
     
     console.log(`Iniciando download de ${url} para ${downloadPath}`);
