@@ -152,6 +152,47 @@ async function downloadGameImages(images, gamePath) {
   }
 }
 
+// Função para mover arquivos de uma pasta para outra
+function moveFilesUp(sourcePath, targetPath) {
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isDirectory()) {
+    console.log(`Pasta de origem não existe: ${sourcePath}`);
+    return false;
+  }
+  
+  if (!fs.existsSync(targetPath)) {
+    fs.mkdirSync(targetPath, { recursive: true });
+  }
+  
+  try {
+    const items = fs.readdirSync(sourcePath);
+    for (const item of items) {
+      const sourceItemPath = path.join(sourcePath, item);
+      const targetItemPath = path.join(targetPath, item);
+      
+      // Se o destino já existe, remover primeiro
+      if (fs.existsSync(targetItemPath)) {
+        if (fs.statSync(targetItemPath).isDirectory()) {
+          fs.rmdirSync(targetItemPath, { recursive: true });
+        } else {
+          fs.unlinkSync(targetItemPath);
+        }
+      }
+      
+      // Move o arquivo/pasta
+      fs.renameSync(sourceItemPath, targetItemPath);
+      console.log(`Movido: ${sourceItemPath} -> ${targetItemPath}`);
+    }
+    
+    // Remove a pasta de origem vazia
+    fs.rmdirSync(sourcePath);
+    console.log(`Pasta de origem removida: ${sourcePath}`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao mover arquivos: ${error.message}`);
+    return false;
+  }
+}
+
 // Função principal para baixar jogos
 async function downloadGameFromItch(url, customDownloadPath = null) {
   try {
@@ -208,12 +249,12 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
     await page.goto(url, { waitUntil: 'networkidle2' });
     console.log(`Navegou para ${url}`);
     
-    await page.waitForSelector('a.button.download_btn', { timeout: 6000 });
+    await page.waitForSelector('a.button.download_btn', { timeout: 10000 });
     await page.click('a.button.download_btn');
     
     // Esperar para o download iniciar
     console.log('Aguardando download...');
-    await new Promise(resolve => setTimeout(resolve, 6000));
+    await new Promise(resolve => setTimeout(resolve, 10000));
     
     // Verificar se há arquivos sendo baixados
     const checkFiles = () => {
@@ -280,10 +321,39 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
       if (fileInfo.filePath.toLowerCase().endsWith('.zip')) {
         console.log(`Arquivo ZIP encontrado: ${fileInfo.filePath}`);
         try {
-          // Extrair o arquivo ZIP para a pasta do jogo
+          // Extrair o arquivo ZIP para um diretório temporário dentro da pasta do jogo
+          const tempExtractPath = path.join(downloadPath, '_temp_extract');
+          if (!fs.existsSync(tempExtractPath)) {
+            fs.mkdirSync(tempExtractPath, { recursive: true });
+          }
+          
           const zip = new AdmZip(fileInfo.filePath);
-          zip.extractAllTo(downloadPath, true);
-          console.log(`Arquivo ZIP extraído para: ${downloadPath}`);
+          zip.extractAllTo(tempExtractPath, true);
+          console.log(`Arquivo ZIP extraído para: ${tempExtractPath}`);
+          
+          // Mover todos os arquivos extraídos para a pasta principal do jogo
+          const extractedItems = fs.readdirSync(tempExtractPath);
+          
+          // Se houver apenas uma pasta no diretório extraído, movemos o conteúdo dessa pasta
+          if (extractedItems.length === 1) {
+            const singleItemPath = path.join(tempExtractPath, extractedItems[0]);
+            if (fs.statSync(singleItemPath).isDirectory()) {
+              // Move o conteúdo da pasta única para a pasta principal do jogo
+              moveFilesUp(singleItemPath, downloadPath);
+            } else {
+              // Se for apenas um arquivo, movê-lo para a pasta principal
+              const targetPath = path.join(downloadPath, extractedItems[0]);
+              fs.renameSync(singleItemPath, targetPath);
+            }
+          } else {
+            // Se houver múltiplos itens, movê-los diretamente para a pasta principal
+            moveFilesUp(tempExtractPath, downloadPath);
+          }
+          
+          // Remover a pasta temporária se ainda existir
+          if (fs.existsSync(tempExtractPath)) {
+            fs.rmdirSync(tempExtractPath, { recursive: true });
+          }
           
           // Deletar o arquivo ZIP após extração
           try {
@@ -298,8 +368,8 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
       }
     }
     
-    // Encontrar todos os executáveis na pasta do jogo
-    const executableFiles = findExecutableInFolder(downloadPath);
+    // Encontrar executável na pasta do jogo
+    const executablePath = findExecutableInFolder(downloadPath);
     
     return {
       success: true,
@@ -307,7 +377,8 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
       message: 'Download concluído com sucesso!',
       path: downloadPath,
       files: recentFiles.map(f => f.filePath),
-      executables: executableFiles ? [executableFiles] : [],
+      executables: executablePath ? [executablePath] : [],
+      executablePath: executablePath, // Adicionar caminho do executável diretamente
       gameInfo: gameInfo
     };
   } catch (error) {
@@ -325,6 +396,25 @@ async function downloadGameFromItch(url, customDownloadPath = null) {
 // Função para executar um jogo
 async function launchGame(executablePath) {
   try {
+    // Verificar se o caminho fornecido é válido
+    if (!executablePath) {
+      throw new Error('Caminho do executável não fornecido');
+    }
+    
+    // Se o caminho terminar com .zip, procurar por executáveis no diretório pai
+    if (executablePath.toLowerCase().endsWith('.zip')) {
+      const dirPath = path.dirname(executablePath);
+      console.log(`O caminho fornecido é um arquivo ZIP. Procurando executáveis em: ${dirPath}`);
+      
+      const newExecutablePath = findExecutableInFolder(dirPath);
+      if (newExecutablePath) {
+        executablePath = newExecutablePath;
+        console.log(`Executável encontrado: ${executablePath}`);
+      } else {
+        throw new Error('Não foi possível encontrar um executável no diretório do jogo');
+      }
+    }
+    
     const { exec } = require('child_process');
     console.log(`Iniciando jogo: ${executablePath}`);
     

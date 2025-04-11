@@ -9,6 +9,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
   const [downloadState, setDownloadState] = useState('idle'); 
   const [progress, setProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState('');
+  const [executablePath, setExecutablePath] = useState(''); // Adicionado para armazenar o caminho do executável
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -90,7 +91,16 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
       console.log('Resultado do download:', result);
       
       if (result && result.success) {
+        // Armazenar o caminho do diretório do jogo
         setDownloadPath(result.path || (result.files && result.files[0]));
+        
+        // Armazenar o caminho do executável se disponível
+        if (result.executablePath) {
+          setExecutablePath(result.executablePath);
+        } else if (result.executables && result.executables.length > 0) {
+          setExecutablePath(result.executables[0]);
+        }
+        
         setDownloadState('completed');
         setProgress(100);
         
@@ -113,10 +123,16 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
 
   const runGame = () => {
     try {
-      if (downloadPath && window.electronAPI) {
-        console.log('Tentando abrir:', downloadPath);
+      // Primeiro tenta usar o caminho do executável se disponível
+      if (executablePath && window.electronAPI) {
+        console.log('Executando jogo com executável:', executablePath);
+        window.electronAPI.openFileByPath(executablePath);
+      } 
+      // Se não tiver o executável, tenta usar o caminho da pasta para procurar o executável
+      else if (downloadPath && window.electronAPI) {
+        console.log('Tentando abrir jogo com diretório:', downloadPath);
         window.electronAPI.openFileByPath(downloadPath);
-      } else if (!downloadPath) {
+      } else if (!downloadPath && !executablePath) {
         setErrorMessage('Caminho do jogo não disponível');
         setDownloadState('error');
       } else {
@@ -172,10 +188,6 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
       return `${baseClass} disabled`;
     return baseClass;
   };
-
-
-
-
 
   return (
     <div className="download-wrapper">
