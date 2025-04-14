@@ -14,10 +14,11 @@ import '../components/Subject.css';
 
 // Importação de imagens
 import tigrinho from '../assets/tigrinho.svg';
+import Telahorizontal from '../assets/Telahorizontal.svg';
 
 // Dados dos jogos
 const availableGames = [
-  { id: 1, title: 'Animais na Selva', image: tigrinho },
+  { id: 1, title: 'Animais na Selva', image: Telahorizontal },
   { id: 2, title: 'Encontre as Diferenças', image: tigrinho },
   { id: 3, title: 'Combinando Animais', image: tigrinho },
   { id: 4, title: 'Robô Matemático', image: tigrinho },
@@ -36,9 +37,12 @@ const installedGames = [
 
 // Dados das categorias
 const subjectsData = [
-  { id: 1, title: 'Jogos de Memória', image: tigrinho },
+  { id: 1, title: 'Portugues', image: Telahorizontal },
   { id: 2, title: 'Jogos de Raciocínio', image: tigrinho },
   { id: 3, title: 'Jogos de Quebra-cabeça', image: tigrinho },
+  { id: 4, title: 'Jogos de Memória', image: tigrinho },
+  { id: 5, title: 'Jogos de Raciocínio', image: tigrinho },
+  { id: 6, title: 'Jogos de Quebra-cabeça', image: tigrinho },
 ];
 
 function App() {
@@ -64,19 +68,18 @@ function App() {
             Filtrar
           </button>
           <SearchBar onSearch={handleSearch} />
-          <button 
+          {/* <button 
             className="navigation-button" 
             onClick={goToGameManager}
             style={{ marginLeft: '10px', padding: '8px 16px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
             Ir para Gerenciador de Jogos
-          </button>
+          </button> */}
         </div>
       </header>
 
       <main className="main-content">
       <Subject subjects={subjectsData} />
-        
         <Carousel title="Jogos Disponíveis">
           {availableGames.map(game => (
             <GameCard key={game.id} image={game.image} title={game.title} />
