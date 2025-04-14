@@ -58,11 +58,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-// 📡 HANDLERS IPC //
-
-// 🔍 Scraping de dados do jogo no Itch.io
 ipcMain.handle('scrape-game', async (event, gameUrl) => {
   try {
+    const games = getInstalledGames();
+    console.log('Jogos instalados:', games);
+
     const gameData = await scrapeItchGame(gameUrl);
     return gameData;
   } catch (error) {
@@ -71,115 +71,112 @@ ipcMain.handle('scrape-game', async (event, gameUrl) => {
   }
 });
 
+function getInstalledGames() {
+  const libDir = path.resolve(process.cwd(), 'lib');
+
+  try {
+    const items = fs.readdirSync(libDir, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory())
+      .map(dir => dir.name);
+
+    console.log('Pastas encontradas em /lib:', folders);
+    return folders;
+  } catch (err) {
+    console.error('Erro ao ler a pasta /lib:', err.message);
+    return [];
+  }
+}
+
 // ⬇️ Download automático do jogo
 ipcMain.handle('download-game', async (event, gameUrl) => {
+  const games = getInstalledGames();
+  console.log('Jogos instalados:', games);
+
   try {
     console.log('Iniciando download-game com URL:', gameUrl);
-    
-    // Verificação adicional da URL
-    if (!gameUrl || typeof gameUrl !== 'string') {
-      console.error('URL inválida para download:', gameUrl);
+
+    if (!gameUrl || typeof gameUrl !== 'string' || !/^https?:\/\/.+/.test(gameUrl) || !gameUrl.includes('itch.io')) {
       return {
         success: false,
         message: 'URL inválida fornecida para download'
       };
     }
-    
-    // Verificar se é uma URL válida
-    if (!gameUrl.match(/^https?:\/\/.+/)) {
-      console.error('Formato de URL inválido:', gameUrl);
+
+    // Extrai o final da URL como slug (ex: "terror-da-caatinga")
+    const urlSlug = gameUrl.split('/').filter(Boolean).pop();
+    const normalizedSlug = normalizeName(urlSlug);
+
+    // Verifica se o slug já corresponde a uma pasta instalada
+    const alreadyInstalled = games.some(gameName => {
+      return normalizeName(gameName) === normalizedSlug;
+    });
+
+    if (alreadyInstalled) {
+      console.log(`Jogo "${urlSlug}" já está instalado.`);
+      
+      // Monta o caminho como se fosse um download completo
+      const exeDir = path.join(process.cwd(), 'lib', games.find(name => normalizeName(name) === normalizedSlug));
+      const exePath = fs.readdirSync(exeDir).find(file => file.endsWith('.exe'));
+
       return {
-        success: false,
-        message: 'Formato de URL inválido'
+        success: true,
+        executablePath: exePath ? path.join(exeDir, exePath) : null,
+        path: exeDir,
+        files: exePath ? [exePath] : [],
+        message: 'Jogo já instalado. Pronto para jogar!'
       };
     }
-    
-    // Verificar se é uma URL do itch.io
-    if (!gameUrl.includes('itch.io')) {
-      console.error('URL não é do itch.io:', gameUrl);
-      return {
-        success: false,
-        message: 'Por favor, forneça uma URL válida do Itch.io'
-      };
-    }
-    
-    // Diretório para jogos
+
+    // 🔽 Continua com o download se não estiver instalado
     const jogosDir = path.join(app.getPath('userData'), 'jogos');
-    
-    if (!fs.existsSync(jogosDir)) {
-      fs.mkdirSync(jogosDir, { recursive: true });
-      console.log('Pasta jogos criada:', jogosDir);
-    }
-    
-    // Função para enviar atualizações de progresso para o frontend
+    if (!fs.existsSync(jogosDir)) fs.mkdirSync(jogosDir, { recursive: true });
+
     const sendProgress = (percent, status, error = null) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
-        const progressData = { 
-          percent: Math.round(percent), 
-          status: status
-        };
-        
-        if (error) {
-          progressData.error = error;
-        }
-        
-        console.log('Enviando progresso:', progressData);
-        mainWindow.webContents.send('download-progress', progressData);
+        mainWindow.webContents.send('download-progress', {
+          percent: Math.round(percent),
+          status,
+          ...(error ? { error } : {})
+        });
       }
     };
 
-    // Inicia processo com 10%
     sendProgress(10, 'downloading');
-    
-    // Adicione um log para ver a URL exata
-    console.log('Iniciando download da URL:', gameUrl);
-    
-    // Modificar o downloader.js para aceitar callbacks de progresso
-    // ou simular progresso aqui enquanto o download ocorre
-    
-    // Simular alguns eventos de progresso
+
     const simulateProgress = () => {
-      const progressSteps = [25, 40, 60, 75, 90];
-      let stepIndex = 0;
-      
-      const progressInterval = setInterval(() => {
-        if (stepIndex < progressSteps.length) {
-          sendProgress(progressSteps[stepIndex], 'downloading');
-          stepIndex++;
-        } else {
-          clearInterval(progressInterval);
+      const steps = [25, 40, 60, 75, 90];
+      let i = 0;
+      return setInterval(() => {
+        if (i < steps.length) {
+          sendProgress(steps[i++], 'downloading');
         }
       }, 2000);
-      
-      return progressInterval;
     };
-    
+
     const progressInterval = simulateProgress();
-    
     const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
     clearInterval(progressInterval);
 
     if (downloadResult.success) {
       sendProgress(100, 'complete');
-
-      // Procurar arquivo .exe
       const exeFile = downloadResult.files?.find(f => f.endsWith('.exe'));
-
       return {
         success: true,
-        executablePath: exeFile || null, // ← importante: retorna só o executável
+        executablePath: exeFile || null,
         path: downloadResult.path,
         files: downloadResult.files,
         message: 'Download concluído com sucesso!'
       };
     } else {
-      sendProgress(0, 'error', downloadResult.message || 'Falha no download');
-
+      sendProgress(0, 'error', downloadResult.message);
       return {
         success: false,
         message: downloadResult.message || 'Falha no download do jogo'
       };
     }
+
   } catch (error) {
     console.error('Erro no download:', error);
     mainWindow?.webContents.send('download-progress', {
@@ -194,6 +191,13 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     };
   }
 });
+const normalizeName = (name) => {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .toLowerCase()
+    .replace(/\s+/g, '-') // espaços → hífens
+    .replace(/[^a-z0-9\-]/g, ''); // remove outros símbolos
+};
 
 // 🚀 Execução do jogo por caminho
 ipcMain.handle('execute-game', async (event, filePath) => {
@@ -257,6 +261,24 @@ ipcMain.removeAllListeners('open-file-by-path');
 
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath) => {
+  try {
+    let targetDir = filePath;
+
+    // Se for um arquivo, extrai o diretório
+    if (fs.existsSync(filePath) && fs.lstatSync(filePath).isFile()) {
+      targetDir = path.dirname(filePath);
+    }
+
+    const txtPath = path.join(targetDir, 'userData.txt');
+    const userCode = 'user';
+
+    fs.writeFileSync(txtPath, userCode, 'utf8');
+    console.log('Arquivo userData.txt criado em:', txtPath);
+  } catch (err) {
+    console.error('Erro ao criar userData.txt:', err);
+    return;
+  }
+
   if (fs.existsSync(filePath)) {
     execFile(filePath, (error) => {
       if (error) {
