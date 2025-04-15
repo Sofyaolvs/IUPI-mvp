@@ -3,23 +3,53 @@ import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
 import '../css/DownloadButton.css';
 
 const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
-  // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
   const downloadUrl = gameUrl || url;
-  
-  const [downloadState, setDownloadState] = useState('idle'); 
+
+  const [downloadState, setDownloadState] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState('');
-  const [executablePath, setExecutablePath] = useState(''); // Adicionado para armazenar o caminho do executável
+  const [executablePath, setExecutablePath] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    // Função para manipular eventos de progresso do download
+    const checkIfGameInstalled = async () => {
+      if (!window.electronAPI || !downloadUrl) return;
+
+      try {
+        const installedGames = await window.electronAPI.checkInstalledGames();
+        console.log('Jogos instalados:', installedGames);
+
+        const gameSlug = downloadUrl.split('/').filter(Boolean).pop().toLowerCase().replace(/\s+/g, '-');
+        console.log('Slug do jogo:', gameSlug);
+
+        const formattedInstalledGames = installedGames.map(game =>
+          game.toLowerCase().replace(/\s+/g, '-')
+        );
+    
+        // Verifica se o jogo está instalado comparando com o gameSlug
+        if (formattedInstalledGames.includes(gameSlug)) {
+          console.log('Jogo já instalado:', gameSlug);
+          // Atualizar o estado para refletir que o jogo já está instalado
+          setDownloadState('completed');
+          setProgress(100);
+          setDownloadPath(`lib/${gameSlug}`);
+          setExecutablePath(`lib/${gameSlug}`);
+        } else {
+          // Jogo não encontrado, mantém o estado 'idle' para download
+          setDownloadState('idle');
+        }
+      } catch (err) {
+        console.error('Erro ao verificar jogos instalados:', err);
+        setDownloadState('error');
+      }
+    };
+
+    checkIfGameInstalled();
+
     const handleDownloadProgress = (event, progressData) => {
-      console.log('Download progress:', progressData);
-      
       if (progressData) {
         setProgress(progressData.percent || 0);
-        
+
         if (progressData.status === 'extracting') {
           setDownloadState('extracting');
         } else if (progressData.status === 'complete') {
@@ -34,118 +64,67 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
     };
 
     if (window.electronAPI) {
-      // Registrar listener para eventos de progresso de download
       window.electronAPI.onDownloadProgress(handleDownloadProgress);
-      console.log('Listener de download registrado');
-    } else {
-      console.error('Electron API não está disponível em DownloadButton');
     }
 
     return () => {
       if (window.electronAPI) {
-        // Remover listener quando o componente for desmontado
         window.electronAPI.removeDownloadProgress(handleDownloadProgress);
       }
     };
-  }, []);
+  }, [downloadUrl]);
 
   const handleDownload = async () => {
     try {
-      // Verificar se electronAPI está disponível
       if (!window.electronAPI) {
         throw new Error('API do Electron não disponível');
       }
-      
-      // CORREÇÃO AQUI: Verificação da URL antes de continuar
+
       if (!downloadUrl) {
-        console.error('URL vazia fornecida para download');
         setErrorMessage('URL não fornecida. Por favor, insira uma URL válida do Itch.io');
         setDownloadState('error');
-        return; // Retorno antecipado se não houver URL
-      }
-      
-      // Verificação de formato de URL básica
-      if (typeof downloadUrl !== 'string' || !downloadUrl.trim()) {
-        console.error('URL inválida:', downloadUrl);
-        setErrorMessage('URL inválida. Por favor, insira uma URL válida do Itch.io');
-        setDownloadState('error');
         return;
       }
-      
-      // Verificar se é uma URL do Itch.io 
-      if (!downloadUrl.includes('itch.io')) {
-        console.error('Não é URL do itch.io:', downloadUrl);
-        setErrorMessage('Por favor, forneça uma URL válida do Itch.io');
-        setDownloadState('error');
-        return;
-      }
-      
+
       console.log('Iniciando download com URL:', downloadUrl);
       setDownloadState('downloading');
       setProgress(5);
       setErrorMessage('');
-      
-      // Chamar a API do Electron para download
-      console.log('Chamando electronAPI.downloadGame com URL:', downloadUrl);
+
       const result = await window.electronAPI.downloadGame(downloadUrl);
-      console.log('Resultado do download:', result);
-      
       if (result && result.success) {
-        // Armazenar o caminho do diretório do jogo
         setDownloadPath(result.path || (result.files && result.files[0]));
-        
-        // Armazenar o caminho do executável se disponível
-        if (result.executablePath) {
-          setExecutablePath(result.executablePath);
-        } else if (result.executables && result.executables.length > 0) {
-          setExecutablePath(result.executables[0]);
-        }
-        
+        setExecutablePath(result.executablePath || result.executables?.[0]);
         setDownloadState('completed');
         setProgress(100);
-        
-        if (onDownloadComplete) {
-          onDownloadComplete(result);
-        }
+        if (onDownloadComplete) onDownloadComplete(result);
       } else {
-        const msg = result && result.message ? result.message : 'Falha no download';
-        console.error('Erro de download:', msg);
-        setErrorMessage(msg);
+        setErrorMessage(result.message || 'Falha no download');
         setDownloadState('error');
       }
     } catch (error) {
       console.error('Erro no processo de download:', error);
       setErrorMessage(error.message || 'Falha inesperada no download');
       setDownloadState('error');
-      setProgress(0);
     }
   };
 
   const runGame = () => {
-    try {
-      if (!window.electronAPI) {
-        setErrorMessage('API do Electron não disponível para abrir o jogo');
-        setDownloadState('error');
-        return;
-      }
-      console.log(executablePath)
-      if (executablePath) {
-        console.log('Executando jogo com executável:', executablePath);
-        window.electronAPI.openFileByPath(executablePath);
-      } else if (downloadPath) {
-        console.log('Executável não encontrado. Abrindo pasta do jogo:', downloadPath);
-        window.electronAPI.openFileByPath(downloadPath);
-      } else {
-        setErrorMessage('Caminho do jogo não disponível');
-        setDownloadState('error');
-      }
-    } catch (error) {
-      console.error('Erro ao tentar executar o jogo:', error);
-      setErrorMessage('Erro ao tentar executar o jogo: ' + (error.message || ''));
+    if (!window.electronAPI) {
+      setErrorMessage('API do Electron não disponível para abrir o jogo');
+      setDownloadState('error');
+      return;
+    }
+
+    if (executablePath) {
+      window.electronAPI.openFileByPath(executablePath);
+    } else if (downloadPath) {
+      window.electronAPI.openFileByPath(downloadPath);
+    } else {
+      setErrorMessage('Caminho do jogo não disponível');
       setDownloadState('error');
     }
   };
-  
 
   const getButtonText = () => {
     switch (downloadState) {
@@ -160,14 +139,10 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
   const getButtonIcon = () => {
     switch (downloadState) {
       case 'downloading':
-      case 'extracting':
-        return <Loader className="icon spinning" />;
-      case 'completed':
-        return <Play className="icon" />;
-      case 'error':
-        return <AlertTriangle className="icon" />;
-      default:
-        return <Download className="icon" />;
+      case 'extracting': return <Loader className="icon spinning" />;
+      case 'completed': return <Play className="icon" />;
+      case 'error': return <AlertTriangle className="icon" />;
+      default: return <Download className="icon" />;
     }
   };
 
@@ -177,7 +152,6 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
     } else if (downloadState === 'error' || downloadState === 'idle') {
       handleDownload();
     }
-    // Estados 'downloading' e 'extracting' não fazem nada quando clicados (botão desabilitado)
   };
 
   const getButtonClass = () => {
@@ -185,8 +159,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
     if (className) baseClass = `${baseClass} ${className}`;
     if (downloadState === 'completed') return `${baseClass} completed`;
     if (downloadState === 'error') return `${baseClass} error`;
-    if (downloadState === 'downloading' || downloadState === 'extracting') 
-      return `${baseClass} disabled`;
+    if (downloadState === 'downloading' || downloadState === 'extracting') return `${baseClass} disabled`;
     return baseClass;
   };
 
@@ -203,10 +176,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
 
       {(downloadState === 'downloading' || downloadState === 'extracting') && (
         <div className="progress-bar">
-          <div 
-            className="progress" 
-            style={{ width: `${progress}%` }}
-          />
+          <div className="progress" style={{ width: `${progress}%` }} />
         </div>
       )}
 

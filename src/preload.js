@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFileByPath: (filePath) => ipcRenderer.send('open-file-by-path', filePath),
   onDownloadProgress: (callback) => ipcRenderer.on('download-progress', callback),
   removeDownloadProgress: (callback) => ipcRenderer.removeListener('download-progress', callback),
+  checkInstalledGames: () => ipcRenderer.invoke('check-installed-games'),
 });

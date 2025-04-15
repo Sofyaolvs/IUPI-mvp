@@ -60,8 +60,8 @@ app.on('window-all-closed', () => {
 
 ipcMain.handle('scrape-game', async (event, gameUrl) => {
   try {
-    const games = getInstalledGames();
-    console.log('Jogos instalados:', games);
+    // const games = getInstalledGames();
+    // console.log('Jogos instalados:', games);
 
     const gameData = await scrapeItchGame(gameUrl);
     return gameData;
@@ -71,7 +71,25 @@ ipcMain.handle('scrape-game', async (event, gameUrl) => {
   }
 });
 
-function getInstalledGames() {
+ipcMain.handle('check-installed-games', async () => {
+  const libDir = path.resolve(process.cwd(), 'lib');
+
+  try {
+    const items = fs.readdirSync(libDir, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory())
+      .map(dir => dir.name);
+
+    console.log('Pastas encontradas em /lib:', folders);
+    return folders;
+  } catch (err) {
+    console.error('Erro ao ler a pasta /lib:', err.message);
+    return [];
+  }
+});
+
+function checkInstalledGames(){
   const libDir = path.resolve(process.cwd(), 'lib');
 
   try {
@@ -89,11 +107,7 @@ function getInstalledGames() {
   }
 }
 
-// ⬇️ Download automático do jogo
 ipcMain.handle('download-game', async (event, gameUrl) => {
-  const games = getInstalledGames();
-  console.log('Jogos instalados:', games);
-
   try {
     console.log('Iniciando download-game com URL:', gameUrl);
 
@@ -108,8 +122,14 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     const urlSlug = gameUrl.split('/').filter(Boolean).pop();
     const normalizedSlug = normalizeName(urlSlug);
 
+    // Chama a função para obter jogos instalados
+    const installedGames = checkInstalledGames()
+    if (!installedGames || installedGames.length === 0) {
+      console.log('Nenhum jogo instalado encontrado');
+    }
+
     // Verifica se o slug já corresponde a uma pasta instalada
-    const alreadyInstalled = games.some(gameName => {
+    const alreadyInstalled = installedGames.some(gameName => {
       return normalizeName(gameName) === normalizedSlug;
     });
 
@@ -117,7 +137,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
       console.log(`Jogo "${urlSlug}" já está instalado.`);
       
       // Monta o caminho como se fosse um download completo
-      const exeDir = path.join(process.cwd(), 'lib', games.find(name => normalizeName(name) === normalizedSlug));
+      const exeDir = path.join(process.cwd(), 'lib', installedGames.find(name => normalizeName(name) === normalizedSlug));
       const exePath = fs.readdirSync(exeDir).find(file => file.endsWith('.exe'));
 
       return {
@@ -191,6 +211,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     };
   }
 });
+
 const normalizeName = (name) => {
   return name
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
