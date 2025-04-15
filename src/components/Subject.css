@@ -89,14 +89,7 @@
   height: 180px;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
   margin-bottom: 8px;
-}
-
-.subject-image-container:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
 .subject-image {

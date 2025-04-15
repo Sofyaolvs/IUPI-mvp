@@ -1,104 +1,83 @@
 /* App.css */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
-    
-  }
-  
-  .app {
-    min-height: 100vh;
-    max-width: 1200px;
-    margin: 40px auto;
-  }
-  
-  .header {
-    margin-bottom: 20px;
-  }
-  
-  .search-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-  }
-  
-  .filter-button {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    line-height: 150%;
-    font-weight: 600;
-    font-size: 20px;
-    color: #2a52be;
-    background-color: #ECF1F5;
-    box-shadow: 0 2px 0 0 rgba(29, 29, 30, 0.182);
-  }
-  
-  .filter-icon {
-    color: #2a52be;
-  }
-  
-  .search-box {
-    display: flex;
-    align-items: center;
-    position: relative;
-  }
-  
-  .search-box input {
-    padding: 8px 40px 8px 16px;
-    border: 1px solid #dee2e6;
-    border-radius: 20px;
-    width: 200px;
-    outline: none;
-  }
-  
-  .search-button {
-    position: absolute;
-    right: 10px;
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-  
-  .search-icon {
-    font-size: 16px;
-    color: #090B81;
-  }
-  
-  .main-content {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  
-  .app-content {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    background-color: #FDFDFD;
-  }
-  
-  /* Estilos para links ativos */
-  .active-link {
-    background-color: #34495e;
-  }
-  
-  /* Ajustar responsividade */
-  @media (max-width: 768px) {
-    .app-navigation {
-      flex-direction: column;
-    }
-    
-    .nav-left, .nav-right {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-    
-    .search-bar input {
-      width: 100%;
-    }
-  }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+}
+
+.app {
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 40px auto;
+}
+
+.header {
+  margin-bottom: 20px;
+}
+
+.search-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  line-height: 150%;
+  font-weight: 600;
+  font-size: 16px;
+  color: #2a52be;
+  background-color: #ECF1F5;
+  box-shadow: 0 2px 0 0 rgba(29, 29, 30, 0.182);
+}
+
+.filter-icon {
+  color: #2a52be;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.search-box input {
+  padding: 8px 40px 8px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  width: 200px;
+  outline: none;
+}
+
+.search-button {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.search-icon {
+  font-size: 16px;
+  color: #090B81;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #FDFDFD;
+}
+
