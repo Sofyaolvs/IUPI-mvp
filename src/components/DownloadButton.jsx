@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
 import '../css/DownloadButton.css';
 
-const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
+const DownloadButton = ({ gameName, url, gameUrl, onDownloadComplete, className }) => {
   const downloadUrl = gameUrl || url;
+  console.log('[DownloadButton] Props recebidas:', { gameName, url });
+
+  console.log('[DownloadButton] Props recebidas:', { gameName });
+
+
 
   const [downloadState, setDownloadState] = useState('idle');
   const [progress, setProgress] = useState(0);
@@ -117,9 +122,9 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
     }
 
     if (executablePath) {
-      window.electronAPI.openFileByPath(executablePath);
+      window.electronAPI.openFileByPath(executablePath, gameName);
     } else if (downloadPath) {
-      window.electronAPI.openFileByPath(downloadPath);
+      window.electronAPI.openFileByPath(downloadPath, gameName);
     } else {
       setErrorMessage('Caminho do jogo não disponível');
       setDownloadState('error');

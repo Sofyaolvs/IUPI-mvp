@@ -137,7 +137,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
       console.log(`Jogo "${urlSlug}" já está instalado.`);
       
       // Monta o caminho como se fosse um download completo
-      const exeDir = path.join(process.cwd(), 'lib', installedGames.find(name => normalizeName(name) === normalizedSlug));
+      const exeDir = path.join(process.cwd(), 'lib', normalizedSlug);
       const exePath = fs.readdirSync(exeDir).find(file => file.endsWith('.exe'));
 
       return {
@@ -281,32 +281,45 @@ ipcMain.handle('open-file-by-path', (event, filePath) => {
 ipcMain.removeAllListeners('open-file-by-path');
 
 // Manter o listener antigo para compatibilidade
-ipcMain.on('open-file-by-path', (event, filePath) => {
-  try {
-    let targetDir = filePath;
+ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
+  
+  const appPath = app.getAppPath(); // /home/kaike/IUPI-mvp/.webpack/main
+  const projectRoot = path.resolve(__dirname, '../../');
+  const formattedPath = path.join(projectRoot, 'lib', gameName);
+  console.log('finalPath:', formattedPath);
+  //const formattedPath = path.join(files[0], files[1]);
 
-    // Se for um arquivo, extrai o diretório
-    if (fs.existsSync(filePath) && fs.lstatSync(filePath).isFile()) {
-      targetDir = path.dirname(filePath);
+  try {
+    
+    if (!fs.existsSync(formattedPath)) {
+      fs.mkdirSync(formattedPath, { recursive: true });
+      console.log('Diretório criado:', formattedPath);
     }
 
-    const txtPath = path.join(targetDir, 'userData.txt');
-    const userCode = 'user';
+    if (fs.existsSync(formattedPath) && fs.lstatSync(formattedPath).isFile()) {
+      formattedPath = formattedPath;
+    }
+    
+    const txtPath = path.join(formattedPath, 'userData.txt');
+    const userCode = 'user7';
 
     fs.writeFileSync(txtPath, userCode, 'utf8');
-    console.log('Arquivo userData.txt criado em:', txtPath);
+    console.log('Arquivo userData.txt criado em:', txtPath, 'com código: ', userCode);
+
   } catch (err) {
     console.error('Erro ao criar userData.txt:', err);
     return;
   }
+  
+  const formattedFilePath = formattedPath;
 
-  if (fs.existsSync(filePath)) {
-    execFile(filePath, (error) => {
+  if (fs.existsSync(formattedFilePath)) {
+    execFile(formattedFilePath, (error) => {
       if (error) {
         console.error('Erro ao abrir arquivo:', error);
       }
     });
   } else {
-    console.error('Arquivo não encontrado:', filePath);
+    console.error('Arquivo não encontrado:', formattedFilePath);
   }
 });

@@ -8,6 +8,8 @@ const GameManager = () => {
   const [downloadedGame, setDownloadedGame] = useState(null);
 
   const handleScrapingComplete = (data) => {
+    console.log('[SCRAPER] Título extraído:', data.title);
+    console.log("-----------------------------------------------------")
     console.log('[SCRAPER] Dados extraídos:', data);
     setScrapedData(data);
   };
@@ -34,8 +36,10 @@ const GameManager = () => {
           {/* Mostra botão de download */}
           <DownloadButton 
             url={scrapedData.downloadUrl} 
+            gameName={scrapedData.title}
             onDownloadComplete={handleDownloadComplete} 
-          />
+        />
+
         </>
       )}
 

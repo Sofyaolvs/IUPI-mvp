@@ -119,6 +119,7 @@ const GameScraper = () => {
             <div className="scraper-download-container">
               <DownloadButton
                 gameUrl={gameData.url} 
+                gameName={gameData.title}
                 className="scraper-download-button"
               />
             </div>
