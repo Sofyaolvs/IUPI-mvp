@@ -22,21 +22,7 @@
   gap: 15px;
 }
 
-.filter-button {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  line-height: 150%;
-  font-weight: 600;
-  font-size: 16px;
-  color: #2a52be;
-  background-color: #ECF1F5;
-  box-shadow: 0 2px 0 0 rgba(29, 29, 30, 0.182);
-}
+
 
 .filter-icon {
   color: #2a52be;

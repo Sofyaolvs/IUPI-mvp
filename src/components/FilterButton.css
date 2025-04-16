@@ -1,168 +1,192 @@
 /* FilterPopup.css */
 
 .filter-popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-    padding: 20px;
-  }
-  
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.filter-popup {
+  background-color: #ECF1F5;
+  border-radius: 10px;
+  width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 13%;
+  right: 33%; /* Position from the right for your 2100px monitor */
+  z-index: 1001;
+}
+
+.filter-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filter-popup-header h2 {
+  font-size: 20px;
+  color: #333;
+  margin: 0;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #090B81;
+  cursor: pointer;
+  transition: color 0.2s;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+}
+
+.close-button:hover {
+  opacity: 0.8;
+}
+
+.filter-section {
+  margin-bottom: 25px;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  line-height: 150%;
+  font-weight: 600;
+  font-size: 16px;
+  color: #090B81;
+  background-color: #ECF1F5;
+  box-shadow: 0 2px 0 0 rgba(29, 29, 30, 0.182);
+}
+
+.filter-section h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #090B81;
+  font-weight: 600;
+  line-height: 150%;
+}
+
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-option {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+  font-weight: 500;
+  color: #090B81;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-option:hover {
+  background-color: #f5f5f5;
+}
+
+.filter-option.selected {
+  border: 3px solid #090B81;
+  padding: 6px 10px 6px 14px; /* Adjust padding to compensate for thicker border */
+}
+
+.check-icon {
+  margin-left: 2px;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 66px;
+  margin-right: 16px;
+}
+
+.filter-action-button {
+  padding: 8px 25px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.2s;
+  border: none;
+}
+
+.filter-action-button.clear {
+  background-color: white;
+  color: #999999;
+}
+
+.filter-action-button.clear:hover {
+  background-color: #e5e5e5;
+}
+
+.filter-action-button.save {
+  background-color: #2a52be;
+  color: white;
+}
+
+.filter-action-button.save:hover {
+  background-color: #1e3d8f;
+}
+
+/* Responsive adjustments for different monitor sizes */
+@media screen and (max-width: 1920px) {
   .filter-popup {
-    background-color: #ECF1F5;
-    border-radius: 10px;
-    width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    position: absolute;
-    top: 13%;
-    right: 33%; /* Position from the right for your 2100px monitor */
-    z-index: 1001;
+    right: 30%;
+    top: 17%;
   }
-  
-  .filter-popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+}
+
+@media screen and (max-width: 1600px) {
+  .filter-popup {
+    right: 28%;
+    top: 17%;
   }
-  
-  .filter-popup-header h2 {
-    font-size: 20px;
-    color: #333;
-    margin: 0;
-    font-weight: 600;
+}
+
+@media screen and (max-width: 1366px) {
+  .filter-popup {
+    right: 25%;
+    top: 17%;
   }
-  
-  .close-button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #090B81;
-    cursor: pointer;
-    transition: color 0.2s;
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    background-color: white;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+}
+
+@media screen and (max-width: 1280px) {
+  .filter-popup {
+    right: 25%;
+    top: 17%;
   }
-  
-  .close-button:hover {
-    color: #333;
-  }
-  
-  .filter-section {
-    margin-bottom: 25px;
-  }
-  
-  .filter-section h3 {
-    font-size: 18px;
-    margin-bottom: 15px;
-    color: #090B81;
-    font-weight: 600;
-    line-height: 150%;
-  }
-  
-  .filter-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-  
-  .filter-option {
-    padding: 8px 12px;
-    border-radius: 20px;
-    border: 1px solid #e0e0e0;
-    background-color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 16px;
-    font-weight: 500;
-    color: #090B81;
-  }
-  
-  .filter-option:hover {
-    background-color: #f5f5f5;
-  }
-  
-  .filter-option.selected {
-    border: 3px solid #090B81;
-  }
-  
-  .filter-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 66px;
-    margin-right: 16px;
-  }
-  
-  .filter-action-button {
-    padding: 8px 25px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 16px;
-    transition: all 0.2s;
-    border: none;
-  }
-  
-  .filter-action-button.clear {
-    background-color: white;
-    color: #999999;
-  }
-  
-  .filter-action-button.clear:hover {
-    background-color: #e5e5e5;
-  }
-  
-  .filter-action-button.save {
-    background-color: #2a52be;
-    color: white;
-  }
-  
-  .filter-action-button.save:hover {
-    background-color: #1e3d8f;
-  }
-  
-  /* Responsive adjustments for different monitor sizes */
-  @media screen and (max-width: 1920px) {
-    .filter-popup {
-      right: 30%;
-      top: 17%;
-    }
-  }
-  
-  @media screen and (max-width: 1600px) {
-    .filter-popup {
-      right: 28%;
-      top: 17%;
-    }
-  }
-  
-  @media screen and (max-width: 1366px) {
-    .filter-popup {
-      right: 25%;
-      top: 17%;
-    }
-  }
-  
-  @media screen and (max-width: 1280px) {
-    .filter-popup {
-      right: 25%;
-      top: 17%;
-    }
-  }
+}

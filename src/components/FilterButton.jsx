@@ -26,7 +26,19 @@ const FilterPopup = ({
       >
         <div className="filter-popup-header">
           <h2 style={{ color: '#090B81' }}>Filtro</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48">
+              <defs>
+                <mask id="ipSCloseOne0">
+                  <g fill="none" strokeLinejoin="round" strokeWidth="4">
+                    <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+                    <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
+                  </g>
+                </mask>
+              </defs>
+              <path fill="#090B81" d="M0 0h48v48H0z" mask="url(#ipSCloseOne0)"/>
+            </svg>
+          </button>
         </div>
         
         <div className="filter-section">
@@ -39,6 +51,19 @@ const FilterPopup = ({
                 onClick={() => toggleSubject(subject.id)}
               >
                 {subject.name}
+                {selectedSubjects.includes(subject.id) && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
+            <defs>
+              <mask id="ipSCloseOne0">
+                <g fill="none" strokeLinejoin="round" strokeWidth="4">
+                  <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+                  <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
+                </g>
+              </mask>
+            </defs>
+            <path fill="#090B81" d="M0 0h48v48H0z" mask="url(#ipSCloseOne0)"/>
+          </svg>
+                )}
               </button>
             ))}
           </div>
@@ -54,6 +79,19 @@ const FilterPopup = ({
                 onClick={() => toggleGameType(gameType.id)}
               >
                 {gameType.name}
+                {selectedGameTypes.includes(gameType.id) && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
+            <defs>
+              <mask id="ipSCloseOne0">
+                <g fill="none" strokeLinejoin="round" strokeWidth="4">
+                  <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+                  <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
+                </g>
+              </mask>
+            </defs>
+            <path fill="#090B81" d="M0 0h48v48H0z" mask="url(#ipSCloseOne0)"/>
+          </svg>
+                )}
               </button>
             ))}
           </div>
