@@ -40,9 +40,6 @@ const Subject = ({ title, subjects }) => {
 
   return (
     <div className="carousel-container-subject">
-      <div className="carousel-header-subject">
-        <h2 className="carousel-title-subject">{title}</h2>
-      </div>
       <div className="carousel-content-subject">
         <button className="nav-button prev-button side-button-subject" onClick={scrollLeft}>
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="15" viewBox="0 0 1024 1024">

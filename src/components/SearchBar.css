@@ -17,12 +17,10 @@
     color: #090B81;
     outline: none;
     background-color: #ECF1F5;
-    box-shadow: 0 2px 0 0 rgba(29, 29, 30, 0.182);
   }
   
   .search-bar input:focus {
     border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
   }
   
   .search-bar button {

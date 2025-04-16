@@ -33,7 +33,7 @@
     justify-content: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    box-shadow: 0 3px 0 0 rgba(29, 29, 30, 0.153);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
   }
   
   /* .nav-button:hover {
@@ -50,7 +50,10 @@
     gap: 20px;
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+    align-items: stretch;
+    justify-content: flex-start;
   }
+
   
   /* Hide scrollbar for Chrome, Safari and Opera */
   .carousel-items::-webkit-scrollbar {
