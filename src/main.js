@@ -23,15 +23,19 @@ const createWindow = () => {
     },
   });
 
-  // Set Content Security Policy to allow images from itch.zone and other domains
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; img-src 'self' data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *"]
+        'Content-Security-Policy': [
+          "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
+          "img-src 'self' data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
+          "connect-src 'self' http://localhost:3000 http://172.18.9.214:3000 http://172.18.9.214:3001;"
+        ]
       }
     });
   });
+  
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   
@@ -271,5 +275,68 @@ ipcMain.on('open-file-by-path', (event, filePath) => {
     });
   } else {
     console.error('Arquivo não encontrado:', filePath);
+  }
+});
+
+// 🔍 Scraping de dados do jogo no Itch.io
+ipcMain.handle('scrape-game', async (event, gameUrl) => {
+  console.log('Scrape game request received for URL:', gameUrl);
+  
+  // Validate URL
+  if (!gameUrl || typeof gameUrl !== 'string') {
+    console.error('Invalid URL provided for scraping:', gameUrl);
+    return { 
+      error: 'URL inválida fornecida para scraping',
+      images: [],
+      cardImage: null 
+    };
+  }
+  
+  try {
+    // Clean up the URL if needed
+    let cleanUrl = gameUrl.trim();
+    
+    // Ensure it has http:// or https:// prefix
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    
+    console.log('Scraping with cleaned URL:', cleanUrl);
+    
+    // Call the scraper with the clean URL
+    const gameData = await scrapeItchGame(cleanUrl);
+    
+    // If scraping returned an error
+    if (gameData.error) {
+      console.error('Scraping error:', gameData.error);
+      return gameData;
+    }
+    
+    // Validate and filter images (ensure they are valid URLs)
+    if (gameData.images && gameData.images.length > 0) {
+      gameData.images = gameData.images.filter(url => 
+        typeof url === 'string' && 
+        (url.startsWith('http://') || url.startsWith('https://'))
+      );
+      
+      console.log('Filtered images count:', gameData.images.length);
+    } else {
+      gameData.images = [];
+    }
+    
+    // Set cardImage if not already set
+    if (!gameData.cardImage && gameData.images.length > 0) {
+      gameData.cardImage = gameData.images[0];
+      console.log('Set cardImage from first image in array');
+    }
+    
+    return gameData;
+  } catch (error) {
+    console.error('Error during scraping:', error);
+    return { 
+      error: `Erro ao fazer scraping do jogo: ${error.message}`,
+      images: [],
+      cardImage: null
+    };
   }
 });

@@ -5,6 +5,7 @@ import Carousel from '../../components/Carousel/Carousel.jsx';
 import Subject from '../../components/Subjects/Subject.jsx';
 import SearchBar from '../../components/Search/SearchBar.jsx';
 import FilterButton from '../../components/Filter/FilterButton.jsx';
+import Loader from '../../components/Loader/Loader.jsx'; 
 import { fetchGames } from '../../services/api.jsx';
 
 // Importação de estilos
@@ -36,10 +37,12 @@ function Library() {
   const [installedGames, setInstalledGames] = useState([]);
   const [error, setError] = useState('');
   const [rawResponse, setRawResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Carregar jogos da API
   useEffect(() => {
     const loadGames = async () => {
+      setIsLoading(true);
       try {
         const games = await fetchGames();
         setAvailableGames(games.filter(game => !game.installed));
@@ -47,6 +50,8 @@ function Library() {
         setRawResponse(games);
       } catch (err) {
         setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadGames();
@@ -99,18 +104,21 @@ function Library() {
     setSelectedGameTypes([]);
   };
 
+
+  //filtrar tiverem mais jogos na api e as tags estiverem sendo puxadas
   const handleApplyFilters = () => {
     console.log('Filters applied:', {
       subjects: selectedSubjects,
       gameTypes: selectedGameTypes
     });
-    // Implementar lógica de filtragem aqui
+
     setIsFilterOpen(false);
   };
 
+  //fazer a busca qnd o léo juntar a parte do jogo especifico (buscar pro nome do jogo)
   const handleSearch = (searchTerm) => {
     console.log('Buscando por:', searchTerm);
-    // Aqui você pode implementar a lógica para filtrar jogos
+    
   };
 
   return (
@@ -118,7 +126,17 @@ function Library() {
       <header className="header">
         <div className="search-container">
           <button className="filter-button" onClick={toggleFilterPopup}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="1.5" d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <path
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeMiterlimit="10"
+    strokeWidth="1.5"
+    d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"
+  />
+</svg>
+
             Filtrar
           </button>
           <SearchBar onSearch={handleSearch} />
@@ -129,30 +147,36 @@ function Library() {
         <Subject subjects={subjectsData} />
         {error && <p style={{ color: 'red' }}>{error}</p>}
         
-        <Carousel title="Jogos Disponíveis">
-          {availableGames.map(game => (
-            <GameCard
-              key={game.id}
-              image={game.image}
-              title={game.name}
-              subject={game.subject}
-            />
-          ))}
-        </Carousel>
-        
-        <Carousel title="Jogos Instalados">
-          {installedGames.map(game => (
-            <GameCard
-              key={game.id}
-              image={game.image}
-              title={game.name}
-              subject={game.subject}
-            />
-          ))}
-        </Carousel>
+        {/* enquanto chama os jogos fica carregando yay */}
+        {isLoading ? (
+          <Loader message="Carregando jogos" />
+        ) : (
+          <>
+            <Carousel title="Jogos Disponíveis">
+              {availableGames.map(game => (
+                <GameCard
+                  key={game.id}
+                  image={game.image}
+                  title={game.name}
+                  subject={game.subject}
+                />
+              ))}
+            </Carousel>
+            
+            <Carousel title="Jogos Instalados">
+              {installedGames.map(game => (
+                <GameCard
+                  key={game.id}
+                  image={game.image}
+                  title={game.name}
+                  subject={game.subject}
+                />
+              ))}
+            </Carousel>
+          </>
+        )}
       </main>
 
-      {/* Use the FilterButton component */}
       <FilterButton 
         isOpen={isFilterOpen}
         onClose={toggleFilterPopup}
