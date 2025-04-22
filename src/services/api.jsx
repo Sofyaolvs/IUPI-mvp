@@ -128,3 +128,103 @@ export const fetchGameById = async (gameId) => {
     throw new Error(error.message || 'Erro ao buscar o jogo');
   }
 };
+
+// Método 1: Busca local (filtrar jogos já carregados)
+export const searchGamesLocally = async (searchTerm) => {
+  try {
+    // Buscar todos os jogos primeiro
+    const allGames = await fetchGames();
+    
+    // Se não houver termo de busca, retornar todos os jogos
+    if (!searchTerm || searchTerm.trim() === '') {
+      return allGames;
+    }
+    
+    // Filtrar jogos pelo nome
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    const filteredGames = allGames.filter(game => {
+      // Checar se o título existe e se contém o termo de busca
+      return game.title && game.title.toLowerCase().includes(normalizedSearchTerm);
+    });
+    
+    console.log(`Found ${filteredGames.length} games matching "${searchTerm}"`);
+    return filteredGames;
+  } catch (error) {
+    console.error('Error searching games:', error.message);
+    throw new Error(error.message || 'Erro ao buscar jogos');
+  }
+};
+
+// Método 2: Busca na API (assumindo que a API suporta busca por nome)
+export const searchGamesAPI = async (searchTerm) => {
+  try {
+    // Se não houver termo de busca, buscar todos os jogos
+    if (!searchTerm || searchTerm.trim() === '') {
+      return await fetchGames();
+    }
+    
+    console.log(`Searching games with term: "${searchTerm}"`);
+    // Usando parâmetros de query para buscar pelo nome
+    const response = await fetch(`${API_URL}/games?name=${encodeURIComponent(searchTerm)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar jogos: ${response.statusText}`);
+    }
+
+    const games = await response.json();
+    console.log(`Found ${games.length} games matching "${searchTerm}"`);
+    
+    // Processar os jogos para garantir que tenham imagens (reutilizando lógica)
+    const processedGames = [];
+    
+    for (const game of games) {
+      if (!game || !game.url) {
+        console.warn('Skipping invalid game entry:', game);
+        continue;
+      }
+      
+      try {
+        // Para cada jogo, precisamos buscar sua imagem se não tiver uma
+        if (!game.cardImage && !game.image) {
+          const gameData = await window.electronAPI.scrapeGame(game.url);
+          
+          if (!gameData.error) {
+            const cardImage = extractCardImage(gameData);
+            
+            if (cardImage) {
+              game.cardImage = cardImage;
+              game.image = cardImage;
+            }
+          }
+        }
+        
+        processedGames.push(game);
+      } catch (error) {
+        console.error(`Error processing game ${game.title || 'Untitled'}:`, error);
+        processedGames.push(game);
+      }
+    }
+    
+    return processedGames;
+  } catch (error) {
+    console.error('Error searching games from API:', error.message);
+    throw new Error(error.message || 'Erro ao buscar jogos');
+  }
+};
+
+// Função principal para buscar jogos - escolhe entre busca local ou na API
+// Por padrão, usa a busca local que funciona em qualquer API
+export const searchGames = async (searchTerm) => {
+  // Você pode escolher qual método usar baseado na sua API:
+  
+  // Método 1: Busca local (sempre funciona, mas menos eficiente com muitos jogos)
+  return await searchGamesLocally(searchTerm);
+  
+  // Método 2: Busca na API (mais eficiente, mas requer suporte da API)
+  // return await searchGamesAPI(searchTerm);
+};

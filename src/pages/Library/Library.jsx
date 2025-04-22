@@ -6,7 +6,7 @@ import Subject from '../../components/Subjects/Subject.jsx';
 import SearchBar from '../../components/Search/SearchBar.jsx';
 import FilterButton from '../../components/Filter/FilterButton.jsx';
 import Loader from '../../components/Loader/Loader.jsx'; 
-import { fetchGames } from '../../services/api.jsx';
+import { fetchGames, searchGames } from '../../services/api.jsx';
 
 // Importação de estilos
 import '../../index.css';
@@ -38,6 +38,8 @@ function Library() {
   const [error, setError] = useState('');
   const [rawResponse, setRawResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Carregar jogos da API
   useEffect(() => {
@@ -48,6 +50,7 @@ function Library() {
         setAvailableGames(games.filter(game => !game.installed));
         setInstalledGames(games.filter(game => game.installed));
         setRawResponse(games);
+        setError('');
       } catch (err) {
         setError(err.message);
       } finally {
@@ -104,8 +107,6 @@ function Library() {
     setSelectedGameTypes([]);
   };
 
-
-  //filtrar tiverem mais jogos na api e as tags estiverem sendo puxadas
   const handleApplyFilters = () => {
     console.log('Filters applied:', {
       subjects: selectedSubjects,
@@ -113,12 +114,74 @@ function Library() {
     });
 
     setIsFilterOpen(false);
+    
+    // Se também tiver um termo de busca ativo, podemos combinar os filtros
+    if (searchTerm) {
+      handleSearch(searchTerm, true);
+    }
   };
 
-  //fazer a busca qnd o léo juntar a parte do jogo especifico (buscar pro nome do jogo)
-  const handleSearch = (searchTerm) => {
-    console.log('Buscando por:', searchTerm);
+  // Função de busca atualizada
+  const handleSearch = async (term, keepFilters = false) => {
+    console.log('Buscando por:', term);
+    setSearchTerm(term);
+    setIsSearching(true);
+    setIsLoading(true);
     
+    try {
+      // Buscar jogos pelo termo
+      const searchResults = await searchGames(term);
+      
+      // Se tiver filtros selecionados, aplicá-los aos resultados da busca
+      let filteredResults = [...searchResults];
+      
+      if (keepFilters && (selectedSubjects.length > 0 || selectedGameTypes.length > 0)) {
+        filteredResults = searchResults.filter(game => {
+          const matchesSubject = selectedSubjects.length === 0 || 
+            (game.subject && selectedSubjects.includes(game.subject.toLowerCase()));
+          
+          const matchesType = selectedGameTypes.length === 0 || 
+            (game.type && selectedGameTypes.includes(game.type.toLowerCase()));
+          
+          return matchesSubject && matchesType;
+        });
+      }
+      
+      // Separar em jogos disponíveis e instalados
+      setAvailableGames(filteredResults.filter(game => !game.installed));
+      setInstalledGames(filteredResults.filter(game => game.installed));
+      
+      // Limpar qualquer erro anterior
+      setError('');
+    } catch (err) {
+      console.error('Erro na busca:', err);
+      setError(`Erro ao buscar jogos: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Limpar busca e mostrar todos os jogos novamente
+  const handleClearSearch = () => {
+    if (searchTerm) {
+      setSearchTerm('');
+      setIsSearching(false);
+      
+      // Recarregar todos os jogos
+      setIsLoading(true);
+      fetchGames()
+        .then(games => {
+          setAvailableGames(games.filter(game => !game.installed));
+          setInstalledGames(games.filter(game => game.installed));
+          setError('');
+        })
+        .catch(err => {
+          setError(err.message);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
   };
 
   return (
@@ -126,53 +189,85 @@ function Library() {
       <header className="header">
         <div className="search-container">
           <button className="filter-button" onClick={toggleFilterPopup}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-  <path
-    fill="none"
-    stroke="currentColor"
-    strokeLinecap="round"
-    strokeMiterlimit="10"
-    strokeWidth="1.5"
-    d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"
-  />
-</svg>
-
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeMiterlimit="10"
+                strokeWidth="1.5"
+                d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"
+              />
+            </svg>
             Filtrar
           </button>
+          
           <SearchBar onSearch={handleSearch} />
+          
+          {isSearching && (
+            <button className="clear-search-button" onClick={handleClearSearch}>
+              Limpar busca
+            </button>
+          )}
         </div>
       </header>
 
       <main className="main-content">
         <Subject subjects={subjectsData} />
-        {error && <p style={{ color: 'red' }}>{error}</p>}
         
-        {/* enquanto chama os jogos fica carregando yay */}
+        {error && <p className="error-message">{error}</p>}
+        
         {isLoading ? (
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            <Carousel title="Jogos Disponíveis">
-              {availableGames.map(game => (
-                <GameCard
-                  key={game.id}
-                  image={game.image}
-                  title={game.name}
-                  subject={game.subject}
-                />
-              ))}
-            </Carousel>
+            {/* Mostrar indicação de busca ativa */}
+            {searchTerm && (
+              <div className="search-status">
+                <p>Resultados da busca: "{searchTerm}"</p>
+              </div>
+            )}
             
-            <Carousel title="Jogos Instalados">
-              {installedGames.map(game => (
-                <GameCard
-                  key={game.id}
-                  image={game.image}
-                  title={game.name}
-                  subject={game.subject}
-                />
-              ))}
-            </Carousel>
+            {/* Carrosseis de jogos */}
+            {availableGames.length > 0 ? (
+              <Carousel title="Jogos Disponíveis">
+                {availableGames.map(game => (
+                  <GameCard
+                    key={game.id}
+                    image={game.image}
+                    title={game.name || game.title}
+                    subject={game.subject}
+                  />
+                ))}
+              </Carousel>
+            ) : !isLoading && searchTerm && (
+              <div className="empty-section">Nenhum jogo disponível encontrado para "{searchTerm}"</div>
+            )}
+            
+            {installedGames.length > 0 ? (
+              <Carousel title="Jogos Instalados">
+                {installedGames.map(game => (
+                  <GameCard
+                    key={game.id}
+                    image={game.image}
+                    title={game.name || game.title}
+                    subject={game.subject}
+                  />
+                ))}
+              </Carousel>
+            ) : !isLoading && searchTerm && (
+              <div className="empty-section">Nenhum jogo instalado encontrado para "{searchTerm}"</div>
+            )}
+            
+            {/* Mensagem quando não há resultados em ambas as categorias */}
+            {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
+              <div className="no-results-message">
+                <p>Nenhum jogo encontrado para sua busca "{searchTerm}". Tente outro termo ou limpe a busca.</p>
+                <button className="clear-search-button" onClick={handleClearSearch}>
+                  Limpar busca
+                </button>
+              </div>
+            )}
           </>
         )}
       </main>
