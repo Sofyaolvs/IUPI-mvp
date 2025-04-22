@@ -1,5 +1,5 @@
 import React from 'react';
-import '../components/FilterButton.css';
+import './FilterButton.css';
 
 const FilterPopup = ({ 
   isOpen, 

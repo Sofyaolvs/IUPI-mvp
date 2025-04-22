@@ -2,9 +2,9 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import GameManager from './pages/GameManager.jsx';
-import Library from './pages/Library.jsx';
-import SearchBar from './components/SearchBar.jsx';
-import Subject from './components/Subject.jsx';
+import Library from './pages/Library/Library.jsx'
+import SearchBar from './components/Search/SearchBar.jsx';
+import Subject from './components/Subjects/Subject.jsx'
 
 const Navigation = () => {
   const navigate = useNavigate();

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import DownloadButton from '../components/DownloadButton.jsx'
-import '../css/GameScraper.css';
-import defaultImage from '../assets/Telahorizontal.svg';
+import DownloadButton from '../Download/DownloadButton.jsx'
+import './GameScraper.css';
+import defaultImage from '../../assets/Telahorizontal.svg';
+
 const GameScraper = () => {
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -10,6 +11,7 @@ const GameScraper = () => {
   
 
   const DEFAULT_IMAGE = defaultImage;
+
   const fetchGameInfo = async (url) => {
     try {
       setLoading(true);
@@ -21,8 +23,9 @@ const GameScraper = () => {
       setGameData({
         title: data.title,
         description: data.description,
-        developer: data.developer,
+        // developer: data.developer,
         images: data.images.length > 0 ? data.images : [DEFAULT_IMAGE],
+        cardImage: data.cardImage || (data.images.length > 0 ? data.images[0] : DEFAULT_IMAGE),
         tags: data.tags || [],
         url
       });
@@ -43,7 +46,6 @@ const GameScraper = () => {
   };
 
   const handleImageError = (e) => {
-    // Usando a imagem base64 embutida que sempre funcionará
     e.target.src = DEFAULT_IMAGE;
     
     e.target.style.maxWidth = '100%';

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GameScraper from '../components/GameScraper.jsx';
-import GameExecutor from '../components/GameExecutor.jsx';
-import DownloadButton from '../components/DownloadButton.jsx';
+import GameScraper from '../components/Scraper/GameScraper.jsx';
+import GameExecutor from '../components/Executor/GameExecutor.jsx';
+import DownloadButton from '../components/Download/DownloadButton.jsx';
 
 const GameManager = () => {
   const navigate = useNavigate();

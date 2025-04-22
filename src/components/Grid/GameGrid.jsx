@@ -1,5 +1,5 @@
 import React from "react";
-import GameCard from "./GameCard.jsx";
+import GameCard from "../GameCard/GameCard.jsx";
 
 export const GameGrid = ({ games }) => {
   return (

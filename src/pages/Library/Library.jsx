@@ -1,50 +1,30 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GameCard from '../components/GameCard.jsx';
-import Carousel from '../components/Carousel.jsx';
-import Subject from '../components/Subject.jsx';
-import SearchBar from '../components/SearchBar.jsx';
-import FilterButton from '../components/FilterButton.jsx';
+import GameCard from '../../components/GameCard/GameCard.jsx';
+import Carousel from '../../components/Carousel/Carousel.jsx';
+import Subject from '../../components/Subjects/Subject.jsx';
+import SearchBar from '../../components/Search/SearchBar.jsx';
+import FilterButton from '../../components/Filter/FilterButton.jsx';
+import { fetchGames } from '../../services/api.jsx';
 
 // Importação de estilos
-import '../index.css';
+import '../../index.css';
 import './Library.css';
-import '../components/Carousel.css';
-import '../components/GameCard.css';
-import '../components/Subject.css';
-import '../components/FilterButton.css';
+import '../../components/Carousel/Carousel.css';
+import '../../components/GameCard/GameCard.css'
+import '../../components/Subjects/Subject.css';
+import '../../components/Filter/FilterButton.css';
 
 // Importação de imagens
-import tigrinho from '../assets/tigrinho.svg';
-import Telahorizontal from '../assets/Telahorizontal.svg';
-
-// Dados dos jogos
-const availableGames = [
-  { id: 1, title: 'Animais na Selva', image: Telahorizontal },
-  { id: 2, title: 'Encontre as Diferenças', image: tigrinho },
-  { id: 3, title: 'Combinando Animais', image: tigrinho },
-  { id: 4, title: 'Robô Matemático', image: tigrinho },
-  { id: 5, title: 'Princesa Guerreira', image: tigrinho },
-  { id: 6, title: 'Cuca', image: tigrinho },
-];
-
-const installedGames = [
-  { id: 7, title: 'Fada do Mar', image: tigrinho },
-  { id: 8, title: 'Pirata Aventureiro', image: tigrinho },
-  { id: 9, title: 'Harry Explorador', image: tigrinho },
-  { id: 10, title: 'Gato Travesso', image: tigrinho },
-  { id: 11, title: 'Jogo de Letrinhas', image: tigrinho },
-  { id: 12, title: 'Coelhinho Chef', image: tigrinho },
-];
+import tigrinho from '../../assets/tigrinho.svg';
+import Telahorizontal from '../../assets/Telahorizontal.svg';
 
 // Dados das categorias
 const subjectsData = [
-  { id: 1, title: 'Ciências', image: Telahorizontal },
+  { id: 1, title: 'Portugues', image: Telahorizontal },
   { id: 2, title: 'Jogos de Raciocínio', image: tigrinho },
   { id: 3, title: 'Jogos de Quebra-cabeça', image: tigrinho },
   { id: 4, title: 'Jogos de Memória', image: tigrinho },
-  { id: 5, title: 'Geografia', image: tigrinho },
-  { id: 6, title: 'História', image: tigrinho },
 ];
 
 function Library() {
@@ -52,6 +32,25 @@ function Library() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedGameTypes, setSelectedGameTypes] = useState([]);
+  const [availableGames, setAvailableGames] = useState([]);
+  const [installedGames, setInstalledGames] = useState([]);
+  const [error, setError] = useState('');
+  const [rawResponse, setRawResponse] = useState(null);
+
+  // Carregar jogos da API
+  useEffect(() => {
+    const loadGames = async () => {
+      try {
+        const games = await fetchGames();
+        setAvailableGames(games.filter(game => !game.installed));
+        setInstalledGames(games.filter(game => game.installed));
+        setRawResponse(games);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    loadGames();
+  }, []);
 
   // Dados para o filtro
   const subjects = [
@@ -119,7 +118,7 @@ function Library() {
       <header className="header">
         <div className="search-container">
           <button className="filter-button" onClick={toggleFilterPopup}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="1.5" d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="1.5" d="M21.25 12H8.895m-4.361 0H2.75m18.5 6.607h-5.748m-4.361 0H2.75m18.5-13.214h-3.105m-4.361 0H2.75m13.214 2.18a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm-9.25 6.607a2.18 2.18 0 1 0 0-4.36a2.18 2.18 0 0 0 0 4.36Zm6.607 6.608a2.18 2.18 0 1 0 0-4.361a2.18 2.18 0 0 0 0 4.36Z"/></svg>
             Filtrar
           </button>
           <SearchBar onSearch={handleSearch} />
@@ -128,20 +127,32 @@ function Library() {
 
       <main className="main-content">
         <Subject subjects={subjectsData} />
-        <Carousel title="Jogos Instalados">
-          {installedGames.map(game => (
-            <GameCard key={game.id} image={game.image} title={game.title} />
-          ))}
-        </Carousel>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
         
         <Carousel title="Jogos Disponíveis">
           {availableGames.map(game => (
-            <GameCard key={game.id} image={game.image} title={game.title} />
+            <GameCard
+              key={game.id}
+              image={game.image}
+              title={game.name}
+              subject={game.subject}
+            />
+          ))}
+        </Carousel>
+        
+        <Carousel title="Jogos Instalados">
+          {installedGames.map(game => (
+            <GameCard
+              key={game.id}
+              image={game.image}
+              title={game.name}
+              subject={game.subject}
+            />
           ))}
         </Carousel>
       </main>
 
-      {/* Use the new FilterPopup component */}
+      {/* Use the FilterButton component */}
       <FilterButton 
         isOpen={isFilterOpen}
         onClose={toggleFilterPopup}

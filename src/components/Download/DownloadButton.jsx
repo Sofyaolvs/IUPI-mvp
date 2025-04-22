@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
-import '../css/DownloadButton.css';
+import './DownloadButton.css';
 
 const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
   // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
