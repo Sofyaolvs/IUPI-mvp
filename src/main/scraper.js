@@ -41,8 +41,8 @@ async function scrapeItchGame(url) {
       page.waitForSelector('.game_header_image img', { timeout: 5000 }).catch(() => null)
     ]);
     
-    // Extra wait to ensure images are loaded
-    await page.waitForTimeout(2000);
+    // Substituição do waitForTimeout por setTimeout com Promise
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     console.log('Extracting game data...');
     

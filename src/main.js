@@ -42,7 +42,7 @@ const createWindow = () => {
   // Abre DevTools em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
- }
+ }
 };
 
 
@@ -65,15 +65,7 @@ app.on('window-all-closed', () => {
 // 📡 HANDLERS IPC //
 
 // 🔍 Scraping de dados do jogo no Itch.io
-ipcMain.handle('scrape-game', async (event, gameUrl) => {
-  try {
-    const gameData = await scrapeItchGame(gameUrl);
-    return gameData;
-  } catch (error) {
-    console.error('Erro no scraping:', error);
-    return { error: 'Erro ao fazer scraping do jogo.' };
-  }
-});
+// REMOVI O PRIMEIRO HANDLER DUPLICADO QUE ESTAVA AQUI
 
 // ⬇️ Download automático do jogo
 ipcMain.handle('download-game', async (event, gameUrl) => {
@@ -261,9 +253,6 @@ ipcMain.handle('open-file-by-path', (event, filePath) => {
     });
   });
 });
-
-// Modificar para usar handle em vez de on (permite resposta assíncrona)
-ipcMain.removeAllListeners('open-file-by-path');
 
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath) => {
