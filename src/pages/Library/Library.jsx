@@ -220,12 +220,7 @@ function Library() {
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            {searchTerm && (
-              <div className="search-status">
-                <p>Resultados da busca: "{searchTerm}"</p>
-              </div>
-            )}
-
+           
             {availableGames.length > 0 && (
               <Carousel title="Jogos Disponíveis">
                 {availableGames.map(game => (

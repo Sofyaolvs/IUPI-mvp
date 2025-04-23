@@ -194,7 +194,7 @@ export const searchGames = async (searchTerm) => {
   try {
     console.log(`Searching for: "${searchTerm}"`);
     
-    // Se não houver termo de busca, retornar todos os jogos
+    // Se não houver termo de busca, retornar todos os jogoshvvvhhh
     if (!searchTerm || searchTerm.trim() === '') {
       return await fetchGames();
     }
