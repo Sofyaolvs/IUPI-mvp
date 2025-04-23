@@ -12,7 +12,7 @@ import { fetchGames, searchGames } from '../../services/api.jsx';
 import '../../index.css';
 import './Library.css';
 import '../../components/Carousel/Carousel.css';
-import '../../components/GameCard/GameCard.css'
+import '../../components/GameCard/GameCard.css';
 import '../../components/Subjects/Subject.css';
 import '../../components/Filter/FilterButton.css';
 
@@ -40,9 +40,8 @@ function Library() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [lastSearchTerm, setLastSearchTerm] = useState(''); // Para controlar buscas duplicadas
+  const [lastSearchTerm, setLastSearchTerm] = useState('');
 
-  // Carregar jogos da API
   useEffect(() => {
     const loadGames = async () => {
       setIsLoading(true);
@@ -61,7 +60,6 @@ function Library() {
     loadGames();
   }, []);
 
-  // Dados para o filtro
   const subjects = [
     { id: 'arte', name: 'Arte' },
     { id: 'ciencias', name: 'Ciências' },
@@ -109,31 +107,18 @@ function Library() {
   };
 
   const handleApplyFilters = () => {
-    console.log('Filters applied:', {
-      subjects: selectedSubjects,
-      gameTypes: selectedGameTypes
-    });
-
     setIsFilterOpen(false);
-    
-    // Se também tiver um termo de busca ativo, podemos combinar os filtros
     if (searchTerm) {
       handleSearch(searchTerm);
     }
   };
 
-  // Função de busca atualizada com useCallback para evitar recriações
   const handleSearch = useCallback(async (term) => {
-    // Evitar buscas duplicadas do mesmo termo
-    if (term === lastSearchTerm && term !== '') {
-      return;
-    }
-    
-    console.log('Buscando por:', term);
+    if (term === lastSearchTerm && term !== '') return;
+
     setLastSearchTerm(term);
     setSearchTerm(term);
-    
-    // Se o termo for vazio, recarregue todos os jogos e limpe a busca
+
     if (!term) {
       if (isSearching) {
         setIsSearching(false);
@@ -151,51 +136,38 @@ function Library() {
       }
       return;
     }
-    
-    // Se tiver um termo válido, inicie a busca
+
     setIsSearching(true);
     setIsLoading(true);
-    
+
     try {
-      // Buscar jogos pelo termo
       const searchResults = await searchGames(term);
-      
-      // Se tiver filtros selecionados, aplicá-los aos resultados da busca
       let filteredResults = [...searchResults];
-      
+
       if (selectedSubjects.length > 0 || selectedGameTypes.length > 0) {
         filteredResults = searchResults.filter(game => {
           const matchesSubject = selectedSubjects.length === 0 || 
             (game.subject && selectedSubjects.includes(game.subject.toLowerCase()));
-          
           const matchesType = selectedGameTypes.length === 0 || 
             (game.type && selectedGameTypes.includes(game.type.toLowerCase()));
-          
           return matchesSubject && matchesType;
         });
       }
-      
-      // Separar em jogos disponíveis e instalados
+
       setAvailableGames(filteredResults.filter(game => !game.installed));
       setInstalledGames(filteredResults.filter(game => game.installed));
-      
-      // Limpar qualquer erro anterior
       setError('');
     } catch (err) {
-      console.error('Erro na busca:', err);
       setError(`Erro ao buscar jogos: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   }, [selectedSubjects, selectedGameTypes, isSearching, lastSearchTerm]);
 
-  // Limpar busca e mostrar todos os jogos novamente
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setLastSearchTerm('');
     setIsSearching(false);
-    
-    // Recarregar todos os jogos
     setIsLoading(true);
     fetchGames()
       .then(games => {
@@ -228,9 +200,9 @@ function Library() {
             </svg>
             Filtrar
           </button>
-          
+
           <SearchBar onSearch={handleSearch} debounceTime={500} />
-          
+
           {isSearching && (
             <button className="clear-search-button" onClick={handleClearSearch}>
               Limpar busca
@@ -241,22 +213,20 @@ function Library() {
 
       <main className="main-content">
         <Subject subjects={subjectsData} />
-        
+
         {error && <p className="error-message">{error}</p>}
-        
+
         {isLoading ? (
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            {/* Mostrar indicação de busca ativa */}
             {searchTerm && (
               <div className="search-status">
                 <p>Resultados da busca: "{searchTerm}"</p>
               </div>
             )}
-            
-            {/* Carrosseis de jogos */}
-            {availableGames.length > 0 ? (
+
+            {availableGames.length > 0 && (
               <Carousel title="Jogos Disponíveis">
                 {availableGames.map(game => (
                   <GameCard
@@ -267,11 +237,9 @@ function Library() {
                   />
                 ))}
               </Carousel>
-            ) : !isLoading && searchTerm && (
-              <div className="empty-section">Nenhum jogo disponível encontrado para "{searchTerm}"</div>
             )}
-            
-            {installedGames.length > 0 ? (
+
+            {installedGames.length > 0 && (
               <Carousel title="Jogos Instalados">
                 {installedGames.map(game => (
                   <GameCard
@@ -282,14 +250,11 @@ function Library() {
                   />
                 ))}
               </Carousel>
-            ) : !isLoading && searchTerm && (
-              <div className="empty-section">Nenhum jogo instalado encontrado para "{searchTerm}"</div>
             )}
-            
-            {/* Mensagem quando não há resultados em ambas as categorias */}
+
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
-                <p>Nenhum jogo encontrado para sua busca "{searchTerm}". Tente outro termo ou limpe a busca.</p>
+                <p>Nenhum jogo encontrado para sua busca "{searchTerm}"</p>
                 <button className="clear-search-button" onClick={handleClearSearch}>
                   Limpar busca
                 </button>

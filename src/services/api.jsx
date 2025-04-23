@@ -1,15 +1,18 @@
 const API_URL = 'http://172.18.9.214:3001';
 
-// Utility function to extract first image from game data
+// Cache para armazenar jogos já buscados
+let gamesCache = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos em milissegundos
+
+// Extrair imagem para card
 const extractCardImage = (gameData) => {
   if (!gameData) return null;
   
-  // Try to get the cardImage first
   if (gameData.cardImage && typeof gameData.cardImage === 'string') {
     return gameData.cardImage;
   }
-  
-  // Fall back to first image in the images array
+
   if (gameData.images && Array.isArray(gameData.images) && gameData.images.length > 0) {
     return gameData.images[0];
   }
@@ -17,9 +20,18 @@ const extractCardImage = (gameData) => {
   return null;
 };
 
-export const fetchGames = async () => {
+// Buscar jogos da API com cache
+export const fetchGames = async (forceRefresh = false) => {
   try {
-    console.log('Fetching games from API');
+    const now = Date.now();
+    
+    // Usar cache se disponível e ainda válido, a menos que forceRefresh seja true
+    if (!forceRefresh && gamesCache && (now - lastFetchTime) < CACHE_TTL) {
+      console.log('Using cached games data');
+      return gamesCache;
+    }
+    
+    console.log('Fetching fresh games from API');
     const response = await fetch(`${API_URL}/games`, {
       method: 'GET',
       headers: {
@@ -32,63 +44,103 @@ export const fetchGames = async () => {
     }
 
     const games = await response.json();
-    console.log('Games from API:', games);
+    console.log(`Fetched ${games.length} games from API`);
     
-    // Process each game to ensure it has images
-    const processedGames = [];
+    // Processamento em lote das imagens para melhorar performance
+    const processedGames = await processGamesImages(games);
     
-    for (const game of games) {
-      // Skip invalid games
-      if (!game || !game.url) {
-        console.warn('Skipping invalid game entry:', game);
-        continue;
-      }
-      
-      try {
-        console.log(`Processing game: ${game.title || 'Untitled'}, URL: ${game.url}`);
-        
-        // For each game, we need to fetch its image if it doesn't have one
-        if (!game.cardImage && !game.image) {
-          console.log('Game has no image, fetching from itch.io:', game.url);
-          
-          // Scrape the game's page to get images
-          const gameData = await window.electronAPI.scrapeGame(game.url);
-          
-          if (!gameData.error) {
-            // Extract card image
-            const cardImage = extractCardImage(gameData);
-            
-            // Add the image to the game
-            if (cardImage) {
-              game.cardImage = cardImage;
-              game.image = cardImage; // For backward compatibility
-            }
-            
-            console.log('Added image to game:', game.title, cardImage ? 'image found' : 'no image found');
-          } else {
-            console.error('Error scraping game:', gameData.error);
-          }
-        }
-        
-        processedGames.push(game);
-      } catch (error) {
-        console.error(`Error processing game ${game.title || 'Untitled'}:`, error);
-        // Still add the game even if processing fails
-        processedGames.push(game);
-      }
-    }
+    // Atualizar cache
+    gamesCache = processedGames;
+    lastFetchTime = now;
     
-    console.log('Processed games:', processedGames.length);
     return processedGames;
   } catch (error) {
     console.error('Error fetching games:', error.message);
+    
+    // Se houver um erro, mas tivermos cache, use-o como fallback
+    if (gamesCache) {
+      console.log('Using cached data as fallback due to API error');
+      return gamesCache;
+    }
+    
     throw new Error(error.message || 'Erro ao conectar com o servidor');
   }
 };
 
-// Function to fetch a single game by ID
+// Processar imagens dos jogos em lote
+async function processGamesImages(games) {
+  const processedGames = [];
+  const gamesNeedingImages = [];
+  
+  // Primeiro passo: identificar jogos que precisam de imagens
+  for (const game of games) {
+    if (!game || !game.url) {
+      console.warn('Skipping invalid game entry:', game);
+      continue;
+    }
+    
+    // Se já tem imagem, não precisa processar
+    if (game.cardImage || game.image) {
+      processedGames.push(game);
+    } else {
+      gamesNeedingImages.push(game);
+    }
+  }
+  
+  // Segundo passo: processar em paralelo apenas os jogos que precisam de imagens
+  if (gamesNeedingImages.length > 0) {
+    console.log(`Processing images for ${gamesNeedingImages.length} games`);
+    
+    // Limitar processamento paralelo para não sobrecarregar
+    const batchSize = 5;
+    for (let i = 0; i < gamesNeedingImages.length; i += batchSize) {
+      const batch = gamesNeedingImages.slice(i, i + batchSize);
+      
+      // Processar batch em paralelo
+      const promises = batch.map(async (game) => {
+        try {
+          const gameData = await window.electronAPI.scrapeGame(game.url);
+          
+          if (!gameData.error) {
+            const cardImage = extractCardImage(gameData);
+            
+            if (cardImage) {
+              game.cardImage = cardImage;
+              game.image = cardImage;
+            }
+          }
+          return game;
+        } catch (error) {
+          console.error(`Error processing game ${game.title || 'Untitled'}:`, error);
+          return game;
+        }
+      });
+      
+      const processedBatch = await Promise.all(promises);
+      processedGames.push(...processedBatch);
+      
+      // Pequena pausa entre batches para evitar sobrecarga
+      if (i + batchSize < gamesNeedingImages.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
+  
+  return processedGames;
+}
+
+// Buscar jogo por ID com cache
 export const fetchGameById = async (gameId) => {
   try {
+    // Verificar se está no cache primeiro
+    if (gamesCache) {
+      const cachedGame = gamesCache.find(game => game.id === gameId);
+      if (cachedGame) {
+        console.log('Found game in cache:', gameId);
+        return cachedGame;
+      }
+    }
+    
     const response = await fetch(`${API_URL}/games/${gameId}`, {
       method: 'GET',
       headers: {
@@ -102,7 +154,7 @@ export const fetchGameById = async (gameId) => {
 
     const game = await response.json();
     
-    // If the game doesn't have an image, scrape it
+    // Processar imagem se necessário
     if (!game.cardImage && !game.image && game.url) {
       try {
         const gameData = await window.electronAPI.scrapeGame(game.url);
@@ -120,6 +172,16 @@ export const fetchGameById = async (gameId) => {
       }
     }
     
+    // Atualizar cache se existir
+    if (gamesCache) {
+      const index = gamesCache.findIndex(g => g.id === game.id);
+      if (index >= 0) {
+        gamesCache[index] = game;
+      } else {
+        gamesCache.push(game);
+      }
+    }
+    
     return game;
   } catch (error) {
     console.error('Error fetching game by ID:', error.message);
@@ -127,29 +189,36 @@ export const fetchGameById = async (gameId) => {
   }
 };
 
-// Método 1: Busca local melhorada (filtrar jogos já carregados)
-export const searchGamesLocally = async (searchTerm) => {
+// Função de busca otimizada
+export const searchGames = async (searchTerm) => {
   try {
-    // Buscar todos os jogos primeiro
-    const allGames = await fetchGames();
+    console.log(`Searching for: "${searchTerm}"`);
     
     // Se não houver termo de busca, retornar todos os jogos
     if (!searchTerm || searchTerm.trim() === '') {
-      return allGames;
+      return await fetchGames();
     }
     
-    // Filtrar jogos pelo nome de forma mais abrangente
+    // Garantir que temos os jogos em cache
+    if (!gamesCache) {
+      await fetchGames();
+    }
+    
+    // Filtrar jogos localmente (muito mais rápido que fazer novas requisições)
     const normalizedSearchTerm = searchTerm.toLowerCase().trim();
-    const filteredGames = allGames.filter(game => {
-      // Verificar diferentes propriedades onde o nome do jogo pode estar
-      const gameTitle = game.title || game.name || '';
-      const gameDescription = game.description || '';
-      const gameSubject = game.subject || '';
+    
+    const filteredGames = gamesCache.filter(game => {
+      // Verificar em várias propriedades
+      const gameTitle = (game.title || game.name || '').toLowerCase();
+      const gameDescription = (game.description || '').toLowerCase();
+      const gameSubject = (game.subject || '').toLowerCase();
+      const gameType = (game.type || '').toLowerCase();
       
       return (
-        gameTitle.toLowerCase().includes(normalizedSearchTerm) ||
-        gameDescription.toLowerCase().includes(normalizedSearchTerm) ||
-        gameSubject.toLowerCase().includes(normalizedSearchTerm)
+        gameTitle.includes(normalizedSearchTerm) ||
+        gameDescription.includes(normalizedSearchTerm) ||
+        gameSubject.includes(normalizedSearchTerm) ||
+        gameType.includes(normalizedSearchTerm)
       );
     });
     
@@ -158,98 +227,5 @@ export const searchGamesLocally = async (searchTerm) => {
   } catch (error) {
     console.error('Error searching games:', error.message);
     throw new Error(error.message || 'Erro ao buscar jogos');
-  }
-};
-
-// Método 2: Busca na API (assumindo que a API suporta busca por nome)
-export const searchGamesAPI = async (searchTerm) => {
-  try {
-    // Se não houver termo de busca, buscar todos os jogos
-    if (!searchTerm || searchTerm.trim() === '') {
-      return await fetchGames();
-    }
-    
-    console.log(`Searching games with term: "${searchTerm}"`);
-    // Usando parâmetros de query para buscar pelo nome
-    const response = await fetch(`${API_URL}/games?name=${encodeURIComponent(searchTerm)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar jogos: ${response.statusText}`);
-    }
-
-    const games = await response.json();
-    console.log(`Found ${games.length} games matching "${searchTerm}"`);
-    
-    // Processar os jogos para garantir que tenham imagens (reutilizando lógica)
-    const processedGames = [];
-    
-    for (const game of games) {
-      if (!game || !game.url) {
-        console.warn('Skipping invalid game entry:', game);
-        continue;
-      }
-      
-      try {
-        // Para cada jogo, precisamos buscar sua imagem se não tiver uma
-        if (!game.cardImage && !game.image) {
-          const gameData = await window.electronAPI.scrapeGame(game.url);
-          
-          if (!gameData.error) {
-            const cardImage = extractCardImage(gameData);
-            
-            if (cardImage) {
-              game.cardImage = cardImage;
-              game.image = cardImage;
-            }
-          }
-        }
-        
-        processedGames.push(game);
-      } catch (error) {
-        console.error(`Error processing game ${game.title || 'Untitled'}:`, error);
-        processedGames.push(game);
-      }
-    }
-    
-    return processedGames;
-  } catch (error) {
-    console.error('Error searching games from API:', error.message);
-    throw new Error(error.message || 'Erro ao buscar jogos');
-  }
-};
-
-// Função principal de busca - evitando múltiplas chamadas dentro de um curto período
-// Adicionando variável de controle para prevenir chamadas simultâneas
-let isSearchInProgress = false;
-let searchTimeout = null;
-
-export const searchGames = async (searchTerm) => {
-  // Limpar qualquer busca pendente
-  if (searchTimeout) {
-    clearTimeout(searchTimeout);
-  }
-
-  // Se uma busca já estiver em andamento, aguarde um pouco
-  if (isSearchInProgress) {
-    return new Promise((resolve) => {
-      searchTimeout = setTimeout(() => {
-        resolve(searchGames(searchTerm));
-      }, 300);
-    });
-  }
-
-  try {
-    isSearchInProgress = true;
-    // Usando o método de busca local aprimorado
-    const results = await searchGamesLocally(searchTerm);
-    return results;
-  } finally {
-    // Garantir que o flag seja liberado mesmo em caso de erro
-    isSearchInProgress = false;
   }
 };
