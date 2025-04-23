@@ -35,24 +35,31 @@ function Library() {
   const [selectedGameTypes, setSelectedGameTypes] = useState([]);
   const [availableGames, setAvailableGames] = useState([]);
   const [installedGames, setInstalledGames] = useState([]);
+  const [allGames, setAllGames] = useState([]);
   const [error, setError] = useState('');
-  const [rawResponse, setRawResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastSearchTerm, setLastSearchTerm] = useState('');
+  const [isFiltering, setIsFiltering] = useState(false);
+  
+  // Temporary filter states that are only applied when "Salvar" is clicked
+  const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
+  const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
+  // Carregar todos os jogos
   useEffect(() => {
     const loadGames = async () => {
       setIsLoading(true);
       try {
         const games = await fetchGames();
+        console.log("Jogos carregados:", games); // Log para debug
+        setAllGames(games);
         setAvailableGames(games.filter(game => !game.installed));
         setInstalledGames(games.filter(game => game.installed));
-        setRawResponse(games);
         setError('');
       } catch (err) {
-        setError(err.message);
+        setError(`Erro ao carregar jogos: ${err.message}`);
       } finally {
         setIsLoading(false);
       }
@@ -60,134 +67,283 @@ function Library() {
     loadGames();
   }, []);
 
+  // Dados de matérias e tipos de jogos
   const subjects = [
-    { id: 'arte', name: 'Arte' },
+    { id: 'matematica', name: 'Matemática' },
+    { id: 'portugues', name: 'Língua Portuguesa' },
     { id: 'ciencias', name: 'Ciências' },
     { id: 'geografia', name: 'Geografia' },
     { id: 'historia', name: 'História' },
-    { id: 'lingua-portuguesa', name: 'Lingua Portuguesa' },
-    { id: 'matematica', name: 'Matemática' }
+    { id: 'arte', name: 'Arte' }
   ];
 
   const gameTypes = [
-    { id: 'memoria', name: 'Memória' },
-    { id: 'raciocinio', name: 'Raciocínio' },
     { id: 'logica', name: 'Lógica' },
+    { id: 'memoria', name: 'Memória' },
+    { id: 'quebra-cabeca', name: 'Quebra-cabeça' },
+    { id: 'raciocinio', name: 'Raciocínio' },
     { id: 'estrategia', name: 'Estratégia' },
     { id: 'colorir', name: 'Colorir' },
     { id: 'plataforma', name: 'Plataforma' },
-    { id: 'quebra-cabeca', name: 'Quebra-cabeça' },
     { id: 'tabuleiro', name: 'Tabuleiro' },
     { id: 'aventura', name: 'Aventura' }
   ];
 
+  // Abrir/fechar o popup de filtro
   const toggleFilterPopup = () => {
+    // When opening the filter, initialize temp states with current selections
+    if (!isFilterOpen) {
+      setTempSelectedSubjects([...selectedSubjects]);
+      setTempSelectedGameTypes([...selectedGameTypes]);
+    }
     setIsFilterOpen(!isFilterOpen);
   };
 
+  // Alternar seleção de matéria (apenas para o estado temporário)
   const toggleSubject = (subjectId) => {
-    setSelectedSubjects(prev => 
+    setTempSelectedSubjects(prev => 
       prev.includes(subjectId) 
         ? prev.filter(id => id !== subjectId) 
         : [...prev, subjectId]
     );
   };
 
+  // Alternar seleção de tipo de jogo (apenas para o estado temporário)
   const toggleGameType = (gameTypeId) => {
-    setSelectedGameTypes(prev => 
+    setTempSelectedGameTypes(prev => 
       prev.includes(gameTypeId) 
         ? prev.filter(id => id !== gameTypeId) 
         : [...prev, gameTypeId]
     );
   };
 
+  // Função melhorada para filtrar jogos
+  const filterGames = (games, subjects = [], gameTypes = []) => {
+    if (!subjects.length && !gameTypes.length) {
+      return games;
+    }
+    
+    return games.filter(game => {
+      // Subject filtering - case insensitive
+      const subjectMatch = subjects.length === 0 || 
+        (game.subject && subjects.some(subjectId => {
+          const gameSubject = (game.subject || '').toLowerCase();
+          return gameSubject === subjectId.toLowerCase() || 
+                 gameSubject.includes(subjectId.toLowerCase());
+        }));
+      
+      // Game type (tags) filtering - handle tags as objects with name property
+      let tagsMatch = gameTypes.length === 0;
+      
+      if (!tagsMatch && game.tags && Array.isArray(game.tags)) {
+        // Verificar cada tag do jogo
+        for (const tag of game.tags) {
+          // Verificar se a tag é um objeto com propriedade 'name'
+          if (typeof tag === 'object' && tag !== null && tag.name) {
+            const tagName = tag.name.toLowerCase();
+            // Verificar se algum tipo de jogo selecionado corresponde a esta tag
+            for (const typeId of gameTypes) {
+              const gameType = gameTypes.find(t => t.id === typeId);
+              if (gameType) {
+                const gameTypeName = gameType.name.toLowerCase();
+                if (tagName === gameTypeName || tagName.includes(gameTypeName)) {
+                  tagsMatch = true;
+                  break;
+                }
+              }
+            }
+            if (tagsMatch) break;
+          }
+        }
+      }
+      
+      return subjectMatch && tagsMatch;
+    });
+  };
+
+  // Função para filtrar baseado apenas em nome de tag (sem depender de IDs)
+  const filterGamesByTagName = (games, subjects = [], gameTypeNames = []) => {
+    if (!subjects.length && !gameTypeNames.length) {
+      return games;
+    }
+    
+    return games.filter(game => {
+      // Subject filtering (case insensitive)
+      const subjectMatch = subjects.length === 0 || 
+        (game.subject && subjects.some(subjectId => {
+          // Get the subject name from our subjects list
+          const subjectObj = subjects.find(s => s.id === subjectId);
+          const subjectName = subjectObj ? subjectObj.name.toLowerCase() : subjectId.toLowerCase();
+          
+          const gameSubject = (game.subject || '').toLowerCase();
+          return gameSubject === subjectName || 
+                 gameSubject.includes(subjectName);
+        }));
+      
+      // Game type filtering based purely on tag name
+      let tagsMatch = gameTypeNames.length === 0;
+      
+      if (!tagsMatch && game.tags && Array.isArray(game.tags)) {
+        // Check each tag of the game
+        tagsMatch = game.tags.some(tag => {
+          // Get tag name whether tag is a string or an object with name property
+          const tagName = typeof tag === 'string' ? tag.toLowerCase() : 
+                         (tag && typeof tag === 'object' && tag.name ? tag.name.toLowerCase() : '');
+          
+          // Check if any selected game type matches this tag
+          return gameTypeNames.some(typeId => {
+            const gameType = gameTypes.find(t => t.id === typeId);
+            const gameTypeName = gameType ? gameType.name.toLowerCase() : typeId.toLowerCase();
+            return tagName === gameTypeName || tagName.includes(gameTypeName);
+          });
+        });
+      }
+      
+      return subjectMatch && tagsMatch;
+    });
+  };
+
+  // Função para aplicar filtros aos jogos
+  const applyFiltersToGames = useCallback(() => {
+    if (selectedSubjects.length === 0 && selectedGameTypes.length === 0) {
+      setIsFiltering(false);
+      if (!isSearching) {
+        // Se não há filtros nem busca, mostrar todos os jogos
+        setAvailableGames(allGames.filter(game => !game.installed));
+        setInstalledGames(allGames.filter(game => game.installed));
+        return;
+      }
+    } else {
+      setIsFiltering(true);
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Obter jogos (todos ou resultados da busca atual)
+      let gamesToFilter = allGames;
+      
+      // Aplicar busca textual, se houver
+      if (isSearching && searchTerm) {
+        const term = searchTerm.toLowerCase();
+        gamesToFilter = gamesToFilter.filter(game => {
+          const gameTitle = (game.title || game.name || '').toLowerCase();
+          const gameDescription = (game.description || '').toLowerCase();
+          const gameSubject = (game.subject || '').toLowerCase();
+          
+          // Buscar nas tags, considerando que podem ser objetos com propriedade 'name'
+          let tagMatch = false;
+          if (game.tags && Array.isArray(game.tags)) {
+            tagMatch = game.tags.some(tag => {
+              const tagName = typeof tag === 'string' ? tag.toLowerCase() : 
+                             (tag && tag.name ? tag.name.toLowerCase() : '');
+              return tagName.includes(term);
+            });
+          }
+          
+          return (
+            gameTitle.includes(term) ||
+            gameDescription.includes(term) ||
+            gameSubject.includes(term) ||
+            tagMatch
+          );
+        });
+      }
+
+      // Aplicar filtros usando a função de filtragem por nome de tag
+      const filteredGames = filterGamesByTagName(gamesToFilter, selectedSubjects, selectedGameTypes);
+      
+      console.log("Filtros aplicados:", { 
+        subjects: selectedSubjects, 
+        gameTypes: selectedGameTypes,
+        resultCount: filteredGames.length 
+      });
+      
+      // Atualizar listas de jogos
+      setAvailableGames(filteredGames.filter(game => !game.installed));
+      setInstalledGames(filteredGames.filter(game => game.installed));
+    } catch (err) {
+      setError(`Erro ao aplicar filtros: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchTerm, selectedSubjects, selectedGameTypes, isSearching, allGames]);
+
+  // Apply filters when selected filters or search term changes
+  useEffect(() => {
+    if (!isLoading && allGames.length > 0) {
+      applyFiltersToGames();
+    }
+  }, [selectedSubjects, selectedGameTypes, isSearching, searchTerm, applyFiltersToGames, isLoading, allGames]);
+
+  // Limpar filtros (temporários e aplicados)
   const handleClearFilters = () => {
+    // Clear both temporary and applied filters
+    setTempSelectedSubjects([]);
+    setTempSelectedGameTypes([]);
     setSelectedSubjects([]);
     setSelectedGameTypes([]);
+    setIsFiltering(false);
   };
 
+  // Aplicar filtros ao clicar em "Salvar"
   const handleApplyFilters = () => {
+    // Apply temporary filters to the actual filter state
+    setSelectedSubjects(tempSelectedSubjects);
+    setSelectedGameTypes(tempSelectedGameTypes);
     setIsFilterOpen(false);
-    if (searchTerm) {
-      handleSearch(searchTerm);
-    }
+    
+    // Set filtering flag based on whether there are any filters
+    setIsFiltering(tempSelectedSubjects.length > 0 || tempSelectedGameTypes.length > 0);
   };
 
-  const handleSearch = useCallback(async (term) => {
+  // Função de busca
+  const handleSearch = useCallback((term) => {
+    // Evitar busca repetida do mesmo termo
     if (term === lastSearchTerm && term !== '') return;
 
     setLastSearchTerm(term);
     setSearchTerm(term);
+    setIsSearching(!!term);
+  }, [lastSearchTerm]);
 
-    if (!term) {
-      if (isSearching) {
-        setIsSearching(false);
-        setIsLoading(true);
-        try {
-          const games = await fetchGames();
-          setAvailableGames(games.filter(game => !game.installed));
-          setInstalledGames(games.filter(game => game.installed));
-          setError('');
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      return;
-    }
-
-    setIsSearching(true);
-    setIsLoading(true);
-
-    try {
-      const searchResults = await searchGames(term);
-      let filteredResults = [...searchResults];
-
-      if (selectedSubjects.length > 0 || selectedGameTypes.length > 0) {
-        filteredResults = searchResults.filter(game => {
-          const matchesSubject = selectedSubjects.length === 0 || 
-            (game.subject && selectedSubjects.includes(game.subject.toLowerCase()));
-          const matchesType = selectedGameTypes.length === 0 || 
-            (game.type && selectedGameTypes.includes(game.type.toLowerCase()));
-          return matchesSubject && matchesType;
-        });
-      }
-
-      setAvailableGames(filteredResults.filter(game => !game.installed));
-      setInstalledGames(filteredResults.filter(game => game.installed));
-      setError('');
-    } catch (err) {
-      setError(`Erro ao buscar jogos: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedSubjects, selectedGameTypes, isSearching, lastSearchTerm]);
-
+  // Limpar busca
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setLastSearchTerm('');
     setIsSearching(false);
-    setIsLoading(true);
-    fetchGames()
-      .then(games => {
-        setAvailableGames(games.filter(game => !game.installed));
-        setInstalledGames(games.filter(game => game.installed));
-        setError('');
-      })
-      .catch(err => {
-        setError(err.message);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
   }, []);
+
+  // Debug function
+  const logGameTags = useCallback(() => {
+    // Log unique tag names from all games
+    const tagNames = new Set();
+    allGames.forEach(game => {
+      if (game.tags && Array.isArray(game.tags)) {
+        game.tags.forEach(tag => {
+          const tagName = typeof tag === 'string' ? tag : (tag && tag.name ? tag.name : 'unknown');
+          tagNames.add(tagName);
+        });
+      }
+    });
+    console.log("Unique tag names:", [...tagNames]);
+  }, [allGames]);
+
+  // Call debug function when games load
+  useEffect(() => {
+    if (allGames.length > 0) {
+      logGameTags();
+    }
+  }, [allGames, logGameTags]);
 
   return (
     <div className="app">
       <header className="header">
         <div className="search-container">
-          <button className="filter-button" onClick={toggleFilterPopup}>
+          <button 
+            className={`filter-button ${isFiltering ? 'active' : ''}`} 
+            onClick={toggleFilterPopup}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
               <path
                 fill="none"
@@ -199,9 +355,18 @@ function Library() {
               />
             </svg>
             Filtrar
+            {isFiltering && (
+              <span className="filter-badge">
+                {selectedSubjects.length + selectedGameTypes.length}
+              </span>
+            )}
           </button>
 
-          <SearchBar onSearch={handleSearch} debounceTime={500} />
+          <SearchBar 
+            onSearch={handleSearch} 
+            debounceTime={500} 
+            initialValue={searchTerm}
+          />
 
           {isSearching && (
             <button className="clear-search-button" onClick={handleClearSearch}>
@@ -212,7 +377,49 @@ function Library() {
       </header>
 
       <main className="main-content">
-        <Subject subjects={subjectsData} />
+        <Subject 
+          subjects={subjectsData} 
+          onSelectSubject={(id) => {
+            // Map from Subject UI component ID to our filter system ID
+            let filterId;
+            switch(id) {
+              case 1: // Portugues
+                filterId = 'portugues';
+                break;
+              case 2: // Jogos de Raciocínio
+                filterId = 'raciocinio';
+                break;
+              case 3: // Jogos de Quebra-cabeça
+                filterId = 'quebra-cabeca';
+                break;
+              case 4: // Jogos de Memória
+                filterId = 'memoria';
+                break;
+              default:
+                filterId = null;
+            }
+            
+            if (filterId) {
+              // Se é um Tipo de Jogo
+              if (['raciocinio', 'quebra-cabeca', 'memoria'].includes(filterId)) {
+                // Adicionar ao estado temporário se ainda não estiver lá
+                if (!tempSelectedGameTypes.includes(filterId)) {
+                  setTempSelectedGameTypes(prev => [...prev, filterId]);
+                }
+              } 
+              // Se é uma Matéria
+              else {
+                // Adicionar ao estado temporário se ainda não estiver lá
+                if (!tempSelectedSubjects.includes(filterId)) {
+                  setTempSelectedSubjects(prev => [...prev, filterId]);
+                }
+              }
+              
+              // Abrir o popup de filtro para melhor visibilidade
+              setIsFilterOpen(true);
+            }
+          }}
+        />
 
         {error && <p className="error-message">{error}</p>}
 
@@ -220,15 +427,63 @@ function Library() {
           <Loader message="Carregando jogos" />
         ) : (
           <>
+            {(isSearching || isFiltering) && (
+              <div className="filter-tag-container">
+                {isSearching && (
+                  <div className="filter-tag search-tag">
+                    <span>Busca: {searchTerm}</span>
+                    <button onClick={handleClearSearch}>×</button>
+                  </div>
+                )}
+                
+                {selectedSubjects.map(subjectId => {
+                  const subject = subjects.find(s => s.id === subjectId);
+                  return subject ? (
+                    <div key={subjectId} className="filter-tag subject-tag">
+                      <span>{subject.name}</span>
+                      <button onClick={() => {
+                        // Remove from applied filters directly
+                        setSelectedSubjects(prev => prev.filter(id => id !== subjectId));
+                        // Also remove from temp if filter popup is open
+                        setTempSelectedSubjects(prev => prev.filter(id => id !== subjectId));
+                      }}>×</button>
+                    </div>
+                  ) : null;
+                })}
+                
+                {selectedGameTypes.map(typeId => {
+                  const gameType = gameTypes.find(t => t.id === typeId);
+                  return gameType ? (
+                    <div key={typeId} className="filter-tag type-tag">
+                      <span>{gameType.name}</span>
+                      <button onClick={() => {
+                        // Remove from applied filters directly
+                        setSelectedGameTypes(prev => prev.filter(id => id !== typeId));
+                        // Also remove from temp if filter popup is open
+                        setTempSelectedGameTypes(prev => prev.filter(id => id !== typeId));
+                      }}>×</button>
+                    </div>
+                  ) : null;
+                })}
+                
+                {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
+                  <button className="clear-all-filters" onClick={handleClearFilters}>
+                    Limpar todos os filtros
+                  </button>
+                )}
+              </div>
+            )}
            
             {availableGames.length > 0 && (
               <Carousel title="Jogos Disponíveis">
                 {availableGames.map(game => (
                   <GameCard
                     key={game.id}
-                    image={game.image}
+                    image={game.image || game.cardImage}
                     title={game.name || game.title}
                     subject={game.subject}
+                    tags={game.tags}
+                    onClick={() => navigate(`/game/${game.id}`)}
                   />
                 ))}
               </Carousel>
@@ -239,9 +494,11 @@ function Library() {
                 {installedGames.map(game => (
                   <GameCard
                     key={game.id}
-                    image={game.image}
+                    image={game.image || game.cardImage}
                     title={game.name || game.title}
                     subject={game.subject}
+                    tags={game.tags}
+                    onClick={() => navigate(`/game/${game.id}`)}
                   />
                 ))}
               </Carousel>
@@ -249,10 +506,22 @@ function Library() {
 
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
-                <p>Nenhum jogo encontrado para sua busca "{searchTerm}"</p>
-                <button className="clear-search-button" onClick={handleClearSearch}>
-                  Limpar busca
-                </button>
+                {isSearching ? (
+                  <p>Nenhum jogo encontrado para sua busca "{searchTerm}"</p>
+                ) : isFiltering ? (
+                  <p>Nenhum jogo encontrado para os filtros selecionados</p>
+                ) : (
+                  <p>Nenhum jogo disponível</p>
+                )}
+                
+                {(isSearching || isFiltering) && (
+                  <button className="clear-all-button" onClick={() => {
+                    handleClearSearch();
+                    handleClearFilters();
+                  }}>
+                    Limpar todos os filtros
+                  </button>
+                )}
               </div>
             )}
           </>
@@ -264,8 +533,8 @@ function Library() {
         onClose={toggleFilterPopup}
         subjects={subjects}
         gameTypes={gameTypes}
-        selectedSubjects={selectedSubjects}
-        selectedGameTypes={selectedGameTypes}
+        selectedSubjects={tempSelectedSubjects}  // Use temporary state for popup
+        selectedGameTypes={tempSelectedGameTypes}  // Use temporary state for popup
         toggleSubject={toggleSubject}
         toggleGameType={toggleGameType}
         handleClearFilters={handleClearFilters}

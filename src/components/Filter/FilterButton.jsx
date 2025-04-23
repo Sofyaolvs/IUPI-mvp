@@ -52,17 +52,17 @@ const FilterPopup = ({
               >
                 {subject.name}
                 {selectedSubjects.includes(subject.id) && (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
-            <defs>
-              <mask id="ipSCloseOne0">
-                <g fill="none" strokeLinejoin="round" strokeWidth="4">
-                  <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
-                  <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
-                </g>
-              </mask>
-            </defs>
-            <path fill="#090B81" d="M0 0h48v48H0z" mask="url(#ipSCloseOne0)"/>
-          </svg>
+                  <svg className="selected-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
+                    <defs>
+                      <mask id={`closeIconMask-${subject.id}`}>
+                        <g fill="none" strokeLinejoin="round" strokeWidth="4">
+                          <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+                          <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
+                        </g>
+                      </mask>
+                    </defs>
+                    <path fill="#090B81" d="M0 0h48v48H0z" mask={`url(#closeIconMask-${subject.id})`}/>
+                  </svg>
                 )}
               </button>
             ))}
@@ -80,17 +80,17 @@ const FilterPopup = ({
               >
                 {gameType.name}
                 {selectedGameTypes.includes(gameType.id) && (
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
-            <defs>
-              <mask id="ipSCloseOne0">
-                <g fill="none" strokeLinejoin="round" strokeWidth="4">
-                  <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
-                  <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
-                </g>
-              </mask>
-            </defs>
-            <path fill="#090B81" d="M0 0h48v48H0z" mask="url(#ipSCloseOne0)"/>
-          </svg>
+                  <svg className="selected-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
+                    <defs>
+                      <mask id={`closeIconMask-${gameType.id}`}>
+                        <g fill="none" strokeLinejoin="round" strokeWidth="4">
+                          <path fill="#fff" stroke="#fff" d="M24 44c11.046 0 20-8.954 20-20S35.046 4 24 4S4 12.954 4 24s8.954 20 20 20Z"/>
+                          <path stroke="#000" strokeLinecap="round" d="M29.657 18.343L18.343 29.657m0-11.314l11.314 11.314"/>
+                        </g>
+                      </mask>
+                    </defs>
+                    <path fill="#090B81" d="M0 0h48v48H0z" mask={`url(#closeIconMask-${gameType.id})`}/>
+                  </svg>
                 )}
               </button>
             ))}
@@ -98,8 +98,19 @@ const FilterPopup = ({
         </div>
         
         <div className="filter-actions">
-          <button className="filter-action-button clear" onClick={handleClearFilters}>Limpar</button>
-          <button className="filter-action-button save" onClick={handleApplyFilters}>Salvar</button>
+          <button 
+            className="filter-action-button clear" 
+            onClick={handleClearFilters}
+            disabled={selectedSubjects.length === 0 && selectedGameTypes.length === 0}
+          >
+            Limpar
+          </button>
+          <button 
+            className="filter-action-button save" 
+            onClick={handleApplyFilters}
+          >
+            Salvar
+          </button>
         </div>
       </div>
     </div>

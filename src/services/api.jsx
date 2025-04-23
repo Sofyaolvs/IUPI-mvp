@@ -190,42 +190,62 @@ export const fetchGameById = async (gameId) => {
 };
 
 // Função de busca otimizada
-export const searchGames = async (searchTerm) => {
+export const searchGames = async (searchTerm, selectedSubjects = [], selectedGameTypes = []) => {
   try {
     console.log(`Searching for: "${searchTerm}"`);
     
-    // Se não houver termo de busca, retornar todos os jogoshvvvhhh
-    if (!searchTerm || searchTerm.trim() === '') {
-      return await fetchGames();
-    }
-    
-    // Garantir que temos os jogos em cache
+    // Ensure we have games in cache
     if (!gamesCache) {
       await fetchGames();
     }
     
-    // Filtrar jogos localmente (muito mais rápido que fazer novas requisições)
-    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    // Start with all games or search filtered ones
+    let filteredGames = gamesCache;
     
-    const filteredGames = gamesCache.filter(game => {
-      // Verificar em várias propriedades
-      const gameTitle = (game.title || game.name || '').toLowerCase();
-      const gameDescription = (game.description || '').toLowerCase();
-      const gameSubject = (game.subject || '').toLowerCase();
-      const gameType = (game.type || '').toLowerCase();
+    // Apply text search if there's a search term
+    if (searchTerm && searchTerm.trim() !== '') {
+      const normalizedSearchTerm = searchTerm.toLowerCase().trim();
       
-      return (
-        gameTitle.includes(normalizedSearchTerm) ||
-        gameDescription.includes(normalizedSearchTerm) ||
-        gameSubject.includes(normalizedSearchTerm) ||
-        gameType.includes(normalizedSearchTerm)
-      );
-    });
+      filteredGames = gamesCache.filter(game => {
+        // Verify in various properties
+        const gameTitle = (game.title || game.name || '').toLowerCase();
+        const gameDescription = (game.description || '').toLowerCase();
+        const gameSubject = (game.subject || '').toLowerCase();
+        const gameTags = (game.tags || []).map(tag => tag.name.toLowerCase());
+        
+        return (
+          gameTitle.includes(normalizedSearchTerm) ||
+          gameDescription.includes(normalizedSearchTerm) ||
+          gameSubject.includes(normalizedSearchTerm) ||
+          gameTags.some(tag => tag.includes(normalizedSearchTerm))
+        );
+      });
+    }
     
-    console.log(`Found ${filteredGames.length} games matching "${searchTerm}"`);
+    console.log(`Found ${filteredGames.length} games after text search`);
     return filteredGames;
   } catch (error) {
     console.error('Error searching games:', error.message);
     throw new Error(error.message || 'Erro ao buscar jogos');
   }
+};
+
+export const filterGames = (games, selectedSubjects = [], selectedGameTypes = []) => {
+  if (!selectedSubjects.length && !selectedGameTypes.length) {
+    return games;
+  }
+  
+  return games.filter(game => {
+    // Subject filtering
+    const subjectMatch = selectedSubjects.length === 0 || 
+      (game.subject && selectedSubjects.includes(game.subject.toLowerCase()));
+    
+    // Game type (tags) filtering
+    const tagsMatch = selectedGameTypes.length === 0 || 
+      (game.tags && game.tags.some(tag => 
+        selectedGameTypes.includes(tag.name.toLowerCase())
+      ));
+    
+    return subjectMatch && tagsMatch;
+  });
 };
