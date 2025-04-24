@@ -3,13 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import GameManager from './pages/GameManager.jsx';
 import Library from './pages/Library/Library.jsx'
-import SearchBar from './components/Search/SearchBar.jsx';
-import Subject from './components/Subjects/Subject.jsx'
+import SubjectPage from './pages/SubjectsPage/SubjectPage.jsx';
 
 const Navigation = () => {
   const navigate = useNavigate();
-  
-
 
   return (
     <div></div>
@@ -29,6 +26,26 @@ const App = () => {
               </div>
             </>
           } />
+
+          <Route path="/games" element={
+            <>
+              <Navigation />
+              <div className="app-content">
+                <SubjectPage />
+              </div>
+            </>
+          } />
+
+          {/*caminho pros jogos especificos*/}
+          <Route path="/subject/:subject" element={
+            <>
+              <Navigation />
+              <div className="app-content">
+                <SubjectPage />
+              </div>
+            </>
+          } />
+
           <Route path="/game-manager" element={
             <>
               <Navigation />
@@ -36,17 +53,16 @@ const App = () => {
                 <GameManager />
               </div>
             </>
-            
           } />
-          <Route path="/subject/:id" element={
+
+          <Route path="/game/:id" element={
             <>
               <Navigation />
               <div className="app-content">
-                <Subject />
+                {/* Add your GameDetail component here if you have one */}
               </div>
             </>
           } />
-          {/* Você pode adicionar outras rotas aqui, como uma rota de resultados de busca */}
         </Routes>
       </div>
     </Router>

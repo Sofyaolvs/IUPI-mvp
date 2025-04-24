@@ -22,10 +22,13 @@ import Telahorizontal from '../../assets/Telahorizontal.svg';
 
 // Dados das categorias
 const subjectsData = [
-  { id: 1, title: 'Portugues', image: Telahorizontal },
-  { id: 2, title: 'Jogos de Raciocínio', image: tigrinho },
-  { id: 3, title: 'Jogos de Quebra-cabeça', image: tigrinho },
-  { id: 4, title: 'Jogos de Memória', image: tigrinho },
+  { id: 1, title: 'Português', image: Telahorizontal },
+  { id: 2, title: 'Matemática', image: tigrinho },
+  { id: 3, title: 'História', image: tigrinho },
+  { id: 4, title: 'Geografia', image: tigrinho },
+  { id: 5, title: 'Ciências', image: tigrinho },
+  { id: 6, title: 'Arte', image: tigrinho },
+
 ];
 
 function Library() {
@@ -427,7 +430,8 @@ function Library() {
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            {(isSearching || isFiltering) && (
+            {/* CONTAINER COM TAGS DO FILTRO */}
+            {/* {(isSearching || isFiltering) && (
               <div className="filter-tag-container">
                 {isSearching && (
                   <div className="filter-tag search-tag">
@@ -472,7 +476,7 @@ function Library() {
                   </button>
                 )}
               </div>
-            )}
+            )} */}
            
             {availableGames.length > 0 && (
               <Carousel title="Jogos Disponíveis">

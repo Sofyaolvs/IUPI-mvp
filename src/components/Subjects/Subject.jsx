@@ -1,17 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const Subject = ({ title, subjects }) => {
+const Subject = ({ subjects, onSelectSubject }) => {
   const carouselRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
-  
-  // Track scroll position
+  const navigate = useNavigate(); 
+
   const handleScroll = () => {
     if (carouselRef.current) {
       setIsAtStart(carouselRef.current.scrollLeft === 0);
     }
   };
-  
-  // Set up scroll event listener
+
   useEffect(() => {
     const carousel = carouselRef.current;
     if (carousel) {
@@ -38,6 +38,29 @@ const Subject = ({ title, subjects }) => {
     }
   };
 
+ 
+  const subjectMappings = {
+    1: "PORTUGUES",
+    2: "MATEMATICA", 
+    3: "HISTORIA",
+    4: "GEOGRAFIA",
+    5: "CIENCIAS",
+    6: "ARTE"
+  };
+
+  const handleSubjectClick = (subject) => {
+   
+    if (onSelectSubject) {
+      onSelectSubject(subject.id);
+    }
+    
+    // vai pro valor do enum
+    const subjectEnum = subjectMappings[subject.id];
+    if (subjectEnum) {
+      navigate(`/subject/${subjectEnum.toLowerCase()}`);
+    }
+  };
+
   return (
     <div className="carousel-container-subject">
       <div className="carousel-content-subject">
@@ -47,8 +70,12 @@ const Subject = ({ title, subjects }) => {
           </svg>            
         </button>
         <div className="carousel-items-subject" ref={carouselRef} onScroll={handleScroll}>
-          {subjects.map((subject) => (
-            <div key={subject.id} className="subject-card-subject">
+          {(subjects ?? []).map((subject) => (
+            <div 
+              key={subject.id} 
+              className="subject-card-subject" 
+              onClick={() => handleSubjectClick(subject)}
+            >
               <div className="subject-image-container-subject">
                 <img src={subject.image} alt={subject.title} className="subject-image" />
               </div>
