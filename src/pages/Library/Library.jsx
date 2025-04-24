@@ -487,7 +487,8 @@ function Library() {
                     title={game.name || game.title}
                     subject={game.subject}
                     tags={game.tags}
-                    onClick={() => navigate(`/game/${game.id}`)}
+                  id={game.id}
+                    
                   />
                 ))}
               </Carousel>
@@ -502,7 +503,8 @@ function Library() {
                     title={game.name || game.title}
                     subject={game.subject}
                     tags={game.tags}
-                    onClick={() => navigate(`/game/${game.id}`)}
+                  id={game.id}
+
                   />
                 ))}
               </Carousel>
