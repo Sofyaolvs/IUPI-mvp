@@ -109,6 +109,11 @@
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
+
+  .single-card img{
+    height: 100%;
+    width: 660px;
+  }
   
   /* Carousel */
   .carousel-container-gamePage {
@@ -246,6 +251,7 @@
     .recommended-grid {
       grid-template-columns: repeat(6, 1fr);
     }
+   
   }
   
   
