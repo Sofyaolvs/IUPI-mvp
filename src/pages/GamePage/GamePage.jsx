@@ -5,6 +5,7 @@ import { fetchGameById } from '../../services/api.jsx'; // Import the API functi
 import './GamePage.css';
 import defaultImage from '../../assets/Telahorizontal.svg';
 import Loader from '../../components/Loader/Loader.jsx'; // Import your Loader component
+import DownloadButton from '../../components/Download/DownloadButton.jsx';
 
 export default function GamePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -77,6 +78,10 @@ export default function GamePage() {
 
   const handleBackClick = () => {
     navigate(-1); // Navigate back to the previous page
+  };
+
+  const handleDownloadComplete = () => {
+    console.log('Download completo');
   };
 
   // Extract game tags for categories
@@ -196,9 +201,11 @@ export default function GamePage() {
           <p className="description-text">
             {gameData.description || 'Nenhuma descrição disponível para este jogo.'}
           </p>
-          <button className="install-button">
-            Instalar
-          </button>
+          <DownloadButton 
+            url={gameData.url} 
+            className="install-button"
+            onDownloadComplete={handleDownloadComplete}
+          />
         </div>
       </div>
 
