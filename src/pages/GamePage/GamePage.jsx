@@ -163,7 +163,7 @@ export default function GamePage() {
 
           {/* Carousel controls - only show if there are multiple images */}
           {gameData.images && gameData.images.length > 1 && (
-            <div className="carousel-container">
+            <div className="carousel-container-gamePage">
               <button onClick={prevSlide} className="carousel-button">
                 <ChevronLeft size={48} />
               </button>
@@ -205,7 +205,7 @@ export default function GamePage() {
      <div>
         <h2>Jogos recomendados</h2>
      </div>
-     
+
       </div>
   );
 }
