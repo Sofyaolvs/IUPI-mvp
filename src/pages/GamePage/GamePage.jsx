@@ -96,6 +96,17 @@ export default function GamePage() {
     return gameData.tags;
   };
 
+  const getGameName = () => {
+    if (!gameData || !gameData.name) return [];
+    
+    // If tags is an array of objects with name property
+    if (gameData.name && typeof gameData.name === 'object') {
+      return gameData.name
+    }
+ 
+    return gameData.name;
+  };
+
   if (loading) {
     return (
       <div className="game-loading-container">
@@ -123,6 +134,7 @@ export default function GamePage() {
   }
 
   const gameTags = getGameTags();
+  const gameName = getGameName();
 
   return (
     <div className='game-infor'>
@@ -197,7 +209,7 @@ export default function GamePage() {
 
         {/* Game description */}
         <div className="game-description">
-          <h1 className="game-title">{gameData.title || 'Sem título'}</h1>
+          <h1 className="game-title">{gameName || 'Sem título'}</h1>
           <p className="description-text">
             {gameData.description || 'Nenhuma descrição disponível para este jogo.'}
           </p>
