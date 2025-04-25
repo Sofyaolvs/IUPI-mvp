@@ -12,6 +12,8 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [gameData, setGameData] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [executablePath, setExecutablePath] = useState(null);
   
   const navigate = useNavigate();
   const { id } = useParams();
@@ -22,8 +24,96 @@ export default function GamePage() {
         setLoading(true);
         setError('');
         
-        // Fetch game by ID using the API service
+        // First, get the list of all installed games to check against
+        const installedGames = await window.electronAPI.checkInstalledGames();
+        
+        // Check if this is an installed game first (ID starts with 'installed-')
+        if (id.startsWith('installed-')) {
+          // Try to get data from sessionStorage first
+          const storedData = sessionStorage.getItem('installedGameData');
+          
+          if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            
+            // If we have stored data with matching ID, use it
+            if (parsedData && parsedData.id === id) {
+              setGameData(parsedData);
+              setIsInstalled(true);
+              setExecutablePath(parsedData.executablePath);
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // If we don't have stored data, try to find it in installed games list
+          const gameName = id.replace('installed-', '');
+          
+          // Try to find the game with matching name
+          const foundGame = installedGames.find(game => 
+            (game.title && game.title.toLowerCase() === gameName.toLowerCase()) ||
+            (game.name && game.name.toLowerCase() === gameName.toLowerCase())
+          );
+          
+          if (foundGame) {
+            // If found, set it as game data
+            setGameData({
+              ...foundGame,
+              images: foundGame.image ? [foundGame.image] : []
+            });
+            setIsInstalled(true);
+            setExecutablePath(foundGame.executablePath);
+            
+            // If the game has a URL, try to get a description via web scraping
+            if (foundGame.url) {
+              try {
+                const scrapedData = await window.electronAPI.scrapeGame(foundGame.url);
+                
+                if (!scrapedData.error) {
+                  // Update game data with description and additional images
+                  setGameData(prevData => ({
+                    ...prevData,
+                    description: prevData.description || scrapedData.description,
+                    images: [...(prevData.images || []), ...(scrapedData.images || [])].filter(Boolean)
+                  }));
+                }
+              } catch (scrapeError) {
+                console.error('Error scraping game:', scrapeError);
+              }
+            }
+            
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // If not an installed game or installed game not found, fetch from API
         const game = await fetchGameById(id);
+        
+        // Check if this game is already installed by comparing name
+        const gameName = game.name || game.title;
+        if (gameName) {
+          const normalizedName = gameName.toLowerCase().trim();
+          const matchedInstalledGame = installedGames.find(installedGame => {
+            const installedName = (installedGame.name || installedGame.title || '').toLowerCase().trim();
+            return installedName === normalizedName;
+          });
+          
+          if (matchedInstalledGame) {
+            console.log(`Game ${gameName} is already installed`, matchedInstalledGame);
+            setIsInstalled(true);
+            setExecutablePath(matchedInstalledGame.executablePath);
+            
+            // Merge data from API and installed game
+            game.executablePath = matchedInstalledGame.executablePath;
+            game.installed = true;
+            game.path = matchedInstalledGame.path;
+            
+            // If the installed game has an image, use it
+            if (matchedInstalledGame.image) {
+              game.images = [matchedInstalledGame.image, ...(game.images || [])];
+            }
+          }
+        }
         
         // If game has URL but no images, scrape it
         if (game.url && (!game.images || game.images.length === 0)) {
@@ -80,8 +170,11 @@ export default function GamePage() {
     navigate(-1); // Navigate back to the previous page
   };
 
-  const handleDownloadComplete = () => {
-    console.log('Download completo');
+  const handlePlayGame = () => {
+    if (executablePath) {
+      console.log(`Launching game: ${gameData.title || gameData.name} at ${executablePath}`);
+      window.electronAPI.openFileByPath(executablePath, gameData.title || gameData.name);
+    }
   };
 
   // Extract game tags for categories
@@ -97,14 +190,9 @@ export default function GamePage() {
   };
 
   const getGameName = () => {
-    if (!gameData || !gameData.name) return [];
+    if (!gameData) return 'Jogo sem título';
     
-    // If tags is an array of objects with name property
-    if (gameData.name && typeof gameData.name === 'object') {
-      return gameData.name
-    }
- 
-    return gameData.name;
+    return gameData.title || gameData.name || 'Jogo sem título';
   };
 
   if (loading) {
@@ -209,22 +297,36 @@ export default function GamePage() {
 
         {/* Game description */}
         <div className="game-description">
-          <h1 className="game-title">{gameName || 'Sem título'}</h1>
+          <h1 className="game-title">{gameName}</h1>
           <p className="description-text">
             {gameData.description || 'Nenhuma descrição disponível para este jogo.'}
           </p>
-          <DownloadButton 
-            url={gameData.url} 
-            gameName={gameData.name}
-            onDownloadComplete={handleDownloadComplete} 
-        />
+          
+          {isInstalled ? (
+            <button 
+              className="play-button"
+              onClick={handlePlayGame}
+            >
+              Jogar
+            </button>
+          ) : (
+            <DownloadButton 
+              url={gameData.url} 
+              gameName={gameData.name || gameData.title}
+              onDownloadComplete={() => {
+                // After download, update the UI to show Play button
+                setIsInstalled(true);
+                // Reload the page to get the executable path
+                window.location.reload();
+              }} 
+            />
+          )}
         </div>
       </div>
 
-     <div>
+      <div>
         <h2>Jogos recomendados</h2>
-     </div>
-
       </div>
+    </div>
   );
 }

@@ -161,7 +161,6 @@ ipcMain.handle('check-installed-games', async () => {
         description: gameInfo.description || '',
         subject: gameInfo.subject || '',
         tags: gameInfo.tags || [],
-        developer: gameInfo.developer || '',
         executablePath,
         installed: true
       });
@@ -346,7 +345,6 @@ ipcMain.removeAllListeners('open-file-by-path');
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
 
-  console.log(gameName = "------------------------------------------------------")
   
   const appPath = app.getAppPath(); // /home/kaike/IUPI-mvp/.webpack/main
   const projectRoot = path.resolve(__dirname, '../../');

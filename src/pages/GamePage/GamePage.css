@@ -240,6 +240,24 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
+
+  .play-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+  }
+  
+  .play-button:hover {
+    background-color: #45a049;
+  }
+  
   
   @media (min-width: 768px) {
     .recommended-grid {

@@ -518,44 +518,47 @@ function Library() {
               </div>
             )} */}
            
-            {availableGames.length > 0 && (
-              <Carousel title="Jogos Disponíveis">
-                {availableGames.map(game => (
-                  <GameCard
-                    key={game.id}
-                    image={game.image || game.cardImage}
-                    title={game.name || game.title}
-                    subject={game.subject}
-                    tags={game.tags}
-                    id={game.id}
-                    isInstalled={installedGames.some(installed => 
-                      // Verifica se algum jogo instalado tem o mesmo nome ou título
-                      (installed.name && game.name && installed.name.toLowerCase() === game.name.toLowerCase()) ||
-                      (installed.title && game.title && installed.title.toLowerCase() === game.title.toLowerCase()) ||
-                      // Se um tem name e outro tem title, compara-os também
-                      (installed.name && game.title && installed.name.toLowerCase() === game.title.toLowerCase()) ||
-                      (installed.title && game.name && installed.title.toLowerCase() === game.name.toLowerCase())
-                    )}
-                  />
-                ))}
-              </Carousel>
-            )}
+           {availableGames.length > 0 && (
+            <Carousel title="Jogos Disponíveis">
+              {availableGames.map(game => (
+                <GameCard
+                  key={game.id || `available-${game.name || game.title}`}
+                  image={game.image}
+                  cardImage={game.cardImage}
+                  title={game.title || game.name}
+                  subject={game.subject}
+                  tags={game.tags}
+                  id={game.id}
+                  isInstalled={true}
+                  executablePath={game.executablePath}
+                  path={game.path}
+                  description={game.description}
+                  url={game.url}
+                />
+              ))}
+            </Carousel>
+          )}
 
-            {installedGames.length > 0 && (
-              <Carousel title="Jogos Instalados">
-                {installedGames.map(game => (
-                  <GameCard
-                    key={game.id || `installed-${game.name || game.title}`}
-                    image={game.image || game.cardImage}
-                    title={game.name || game.title}
-                    subject={game.subject}
-                    tags={game.tags}
-                    id={game.id}
-                    isInstalled={true}
-                  />
-                ))}
-              </Carousel>
-            )}
+          {installedGames.length > 0 && (
+            <Carousel title="Jogos Instalados">
+              {installedGames.map(game => (
+                <GameCard
+                  key={game.id || `installed-${game.name || game.title}`}
+                  image={game.image}
+                  cardImage={game.cardImage}
+                  title={game.title || game.name}
+                  subject={game.subject}
+                  tags={game.tags}
+                  id={game.id}
+                  isInstalled={true}
+                  executablePath={game.executablePath}
+                  path={game.path}
+                  description={game.description}
+                  url={game.url}
+                />
+              ))}
+            </Carousel>
+          )}
 
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
