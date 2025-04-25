@@ -64,167 +64,172 @@ app.on('window-all-closed', () => {
 
 // 📡 HANDLERS IPC //
 
-// 🔍 Scraping de dados do jogo no Itch.io
-// REMOVI O PRIMEIRO HANDLER DUPLICADO QUE ESTAVA AQUI
+ipcMain.handle('scrape-game', async (event, gameUrl) => {
+  try {
+    // const games = getInstalledGames();
+    // console.log('Jogos instalados:', games);
 
-// ⬇️ Download automático do jogo
+    const gameData = await scrapeItchGame(gameUrl);
+    return gameData;
+  } catch (error) {
+    console.error('Erro no scraping:', error);
+    return { error: 'Erro ao fazer scraping do jogo.' };
+  }
+});
+
+ipcMain.handle('check-installed-games', async () => {
+  const libDir = path.resolve(process.cwd(), 'lib');
+
+  try {
+    const items = fs.readdirSync(libDir, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory())
+      .map(dir => dir.name);
+
+    console.log('Pastas encontradas em /lib:', folders);
+    return folders;
+  } catch (err) {
+    console.error('Erro ao ler a pasta /lib:', err.message);
+    return [];
+  }
+});
+
+function checkInstalledGames(){
+  const libDir = path.resolve(process.cwd(), 'lib');
+
+  try {
+    const items = fs.readdirSync(libDir, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory())
+      .map(dir => dir.name);
+
+    console.log('Pastas encontradas em /lib:', folders);
+    return folders;
+  } catch (err) {
+    console.error('Erro ao ler a pasta /lib:', err.message);
+    return [];
+  }
+}
+
+//Arrumar lógica do isGameInstalled (pq quebra se o jogo ja estiver baixado)
 ipcMain.handle('download-game', async (event, gameUrl) => {
   try {
     console.log('Iniciando download-game com URL:', gameUrl);
-    
-    // Verificação adicional da URL
-    if (!gameUrl || typeof gameUrl !== 'string') {
-      console.error('URL inválida para download:', gameUrl);
+
+    if (!gameUrl || typeof gameUrl !== 'string' || !/^https?:\/\/.+/.test(gameUrl) || !gameUrl.includes('itch.io')) {
       return {
         success: false,
         message: 'URL inválida fornecida para download'
       };
     }
-    
-    // Verificar se é uma URL válida
-    if (!gameUrl.match(/^https?:\/\/.+/)) {
-      console.error('Formato de URL inválido:', gameUrl);
+
+    // Extrai o final da URL como slug (ex: "terror-da-caatinga")
+    const urlSlug = gameUrl.split('/').filter(Boolean).pop();
+    const normalizedSlug = normalizeName(urlSlug);
+
+    // Chama a função para obter jogos instalados
+    const installedGames = checkInstalledGames()
+    if (!installedGames || installedGames.length === 0) {
+      console.log('Nenhum jogo instalado encontrado');
+    }
+
+    // Verifica se o slug já corresponde a uma pasta instalada
+    const alreadyInstalled = installedGames.some(gameName => {
+      return normalizeName(gameName) === normalizedSlug;
+    });
+
+    if (alreadyInstalled) {
+      console.log("--------------------------------")
+      console.log(`Jogo "${normalizedSlug}" já está instalado.`);
+      // Monta o caminho como se fosse um download completo
+      const exeDir = path.join(process.cwd(), 'lib', normalizedSlug);
+      const exePath = fs.readdirSync(exeDir).find(file => file.endsWith('.exe'));
+
+      console.log("--------------------------------")
+      console.log(exeDir)
+      console.log(exePath)
+      console.log("--------------------------------")
       return {
-        success: false,
-        message: 'Formato de URL inválido'
+        success: true,
+        executablePath: exePath ? path.join(exeDir, exePath) : null,
+        path: exeDir,
+        files: exePath ? [exePath] : [],
+        message: 'Jogo já instalado. Pronto para jogar!'
       };
     }
-    
-    // Verificar se é uma URL do itch.io
-    if (!gameUrl.includes('itch.io')) {
-      console.error('URL não é do itch.io:', gameUrl);
-      return {
-        success: false,
-        message: 'Por favor, forneça uma URL válida do Itch.io'
-      };
-    }
-    
-    // Diretório para jogos
+
+    // 🔽 Continua com o download se não estiver instalado
     const jogosDir = path.join(app.getPath('userData'), 'jogos');
-    
-    if (!fs.existsSync(jogosDir)) {
-      fs.mkdirSync(jogosDir, { recursive: true });
-      console.log('Pasta jogos criada:', jogosDir);
-    }
-    
-    // Função para enviar atualizações de progresso para o frontend
+    if (!fs.existsSync(jogosDir)) fs.mkdirSync(jogosDir, { recursive: true });
+
     const sendProgress = (percent, status, error = null) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
-        const progressData = { 
-          percent: Math.round(percent), 
-          status: status
-        };
-        
-        if (error) {
-          progressData.error = error;
-        }
-        
-        console.log('Enviando progresso:', progressData);
-        mainWindow.webContents.send('download-progress', progressData);
+        mainWindow.webContents.send('download-progress', {
+          percent: Math.round(percent),
+          status,
+          ...(error ? { error } : {})
+        });
       }
     };
 
-    // Inicia processo com 10%
     sendProgress(10, 'downloading');
-    
-    // Adicione um log para ver a URL exata
-    console.log('Iniciando download da URL:', gameUrl);
-    
-    // Modificar o downloader.js para aceitar callbacks de progresso
-    // ou simular progresso aqui enquanto o download ocorre
-    
-    // Simular alguns eventos de progresso
+
     const simulateProgress = () => {
-      const progressSteps = [25, 40, 60, 75, 90];
-      let stepIndex = 0;
-      
-      const progressInterval = setInterval(() => {
-        if (stepIndex < progressSteps.length) {
-          sendProgress(progressSteps[stepIndex], 'downloading');
-          stepIndex++;
-        } else {
-          clearInterval(progressInterval);
+      const steps = [25, 40, 60, 75, 90];
+      let i = 0;
+      return setInterval(() => {
+        if (i < steps.length) {
+          sendProgress(steps[i++], 'downloading');
         }
       }, 2000);
-      
-      return progressInterval;
     };
-    
+
     const progressInterval = simulateProgress();
-    
-    // Inicia o download usando o módulo downloader
     const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
-    
-    // Limpa o intervalo de simulação
     clearInterval(progressInterval);
-    
-    console.log('Resultado do download:', downloadResult);
-    
+
     if (downloadResult.success) {
       sendProgress(100, 'complete');
-      
+      const exeFile = downloadResult.files?.find(f => f.endsWith('.exe'));
       return {
         success: true,
-        path: downloadResult.files && downloadResult.files.length > 0 ? 
-              downloadResult.files[0] : downloadResult.path,
+        executablePath: exeFile || null,
+        path: downloadResult.path,
         files: downloadResult.files,
         message: 'Download concluído com sucesso!'
       };
     } else {
-      sendProgress(0, 'error', downloadResult.message || 'Falha no download');
-      
+      sendProgress(0, 'error', downloadResult.message);
       return {
         success: false,
         message: downloadResult.message || 'Falha no download do jogo'
       };
     }
+
   } catch (error) {
     console.error('Erro no download:', error);
-    
-    // Envia atualização de erro
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('download-progress', { 
-        percent: 0, 
-        status: 'error',
-        error: error.message
-      });
-    }
-    
-    return { 
+    mainWindow?.webContents.send('download-progress', {
+      percent: 0,
+      status: 'error',
+      error: error.message
+    });
+
+    return {
       success: false,
-      message: `Erro ao iniciar download do jogo: ${error.message}` 
+      message: `Erro ao iniciar download do jogo: ${error.message}`
     };
   }
 });
 
-// 🚀 Execução do jogo por caminho
-ipcMain.handle('execute-game', async (event, filePath) => {
-  return new Promise((resolve) => {
-    if (!fs.existsSync(filePath)) {
-      resolve({ error: 'Arquivo não encontrado: ' + filePath });
-      return;
-    }
-    
-    const dirPath = path.dirname(filePath);
-    const infoFile = path.join(dirPath, 'info.txt');
-    
-    fs.writeFile(infoFile, 'user', (err) => {
-      if (err) {
-        console.error('Erro ao criar info.txt:', err);
-      } else {
-        console.log('info.txt criado.');
-      }
-    });
-    
-    execFile(filePath, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ error: stderr || error.message });
-        return;
-      }
-      resolve({ output: stdout || 'Jogo executado com sucesso!' });
-    });
-  });
-});
+const normalizeName = (name) => {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .toLowerCase()
+    .replace(/\s+/g, '-') // espaços → hífens
+    .replace(/[^a-z0-9\-]/g, ''); // remove outros símbolos
+};
 
 // Abrir arquivo pelo caminho
 ipcMain.handle('open-file-by-path', (event, filePath) => {
@@ -254,78 +259,51 @@ ipcMain.handle('open-file-by-path', (event, filePath) => {
   });
 });
 
+// Modificar para usar handle em vez de on (permite resposta assíncrona)
+ipcMain.removeAllListeners('open-file-by-path');
+
 // Manter o listener antigo para compatibilidade
-ipcMain.on('open-file-by-path', (event, filePath) => {
-  if (fs.existsSync(filePath)) {
-    execFile(filePath, (error) => {
+ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
+
+  console.log(gameName = "------------------------------------------------------")
+  
+  const appPath = app.getAppPath(); // /home/kaike/IUPI-mvp/.webpack/main
+  const projectRoot = path.resolve(__dirname, '../../');
+  const formattedPath = path.join(projectRoot, 'lib', gameName);
+  console.log('finalPath:', formattedPath);
+  //const formattedPath = path.join(files[0], files[1]);
+
+  try {
+    
+    if (!fs.existsSync(formattedPath)) {
+      fs.mkdirSync(formattedPath, { recursive: true });
+      console.log('Diretório criado:', formattedPath);
+    }
+
+    if (fs.existsSync(formattedPath) && fs.lstatSync(formattedPath).isFile()) {
+      formattedPath = formattedPath;
+    }
+    
+    const txtPath = path.join(formattedPath, 'userData.txt');
+    const userCode = 'user7';
+
+    fs.writeFileSync(txtPath, userCode, 'utf8');
+    console.log('Arquivo userData.txt criado em:', txtPath, 'com código: ', userCode);
+
+  } catch (err) {
+    console.error('Erro ao criar userData.txt:', err);
+    return;
+  }
+  
+  const formattedFilePath = formattedPath;
+
+  if (fs.existsSync(formattedFilePath)) {
+    execFile(formattedFilePath, (error) => {
       if (error) {
         console.error('Erro ao abrir arquivo:', error);
       }
     });
   } else {
-    console.error('Arquivo não encontrado:', filePath);
-  }
-});
-
-// 🔍 Scraping de dados do jogo no Itch.io
-ipcMain.handle('scrape-game', async (event, gameUrl) => {
-  console.log('Scrape game request received for URL:', gameUrl);
-  
-  // Validate URL
-  if (!gameUrl || typeof gameUrl !== 'string') {
-    console.error('Invalid URL provided for scraping:', gameUrl);
-    return { 
-      error: 'URL inválida fornecida para scraping',
-      images: [],
-      cardImage: null 
-    };
-  }
-  
-  try {
-    // Clean up the URL if needed
-    let cleanUrl = gameUrl.trim();
-    
-    // Ensure it has http:// or https:// prefix
-    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      cleanUrl = 'https://' + cleanUrl;
-    }
-    
-    console.log('Scraping with cleaned URL:', cleanUrl);
-    
-    // Call the scraper with the clean URL
-    const gameData = await scrapeItchGame(cleanUrl);
-    
-    // If scraping returned an error
-    if (gameData.error) {
-      console.error('Scraping error:', gameData.error);
-      return gameData;
-    }
-    
-    // Validate and filter images (ensure they are valid URLs)
-    if (gameData.images && gameData.images.length > 0) {
-      gameData.images = gameData.images.filter(url => 
-        typeof url === 'string' && 
-        (url.startsWith('http://') || url.startsWith('https://'))
-      );
-      
-      console.log('Filtered images count:', gameData.images.length);
-    } else {
-      gameData.images = [];
-    }
-    
-    // Set cardImage if not already set
-    if (!gameData.cardImage && gameData.images.length > 0) {
-      gameData.cardImage = gameData.images[0];
-      console.log('Set cardImage from first image in array');
-    }
-    
-    return gameData;
-  } catch (error) {
-    console.error('Error during scraping:', error);
-    return { 
-      error: `Erro ao fazer scraping do jogo: ${error.message}`,
-      images: [],
-      cardImage: null
-    };
+    console.error('Arquivo não encontrado:', formattedFilePath);
   }
 });

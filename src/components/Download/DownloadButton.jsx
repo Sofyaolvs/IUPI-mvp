@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
 import './DownloadButton.css';
 
-const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
+const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, className }) => {
   // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
+  if(isInstalled) {
+    setDownloadState('completed');
+  }
   const downloadUrl = gameUrl || url;
   
   const [downloadState, setDownloadState] = useState('idle'); 
@@ -87,6 +90,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
       // Chamar a API do Electron para download
       console.log('Chamando electronAPI.downloadGame com URL:', downloadUrl);
       const result = await window.electronAPI.downloadGame(downloadUrl);
+      console.log("------------------------------------"+result.success+ "------------------------"+ result.path)
       console.log('Resultado do download:', result);
       
       if (result && result.success) {
@@ -115,7 +119,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, className }) => {
     try {
       if (downloadPath && window.electronAPI) {
         console.log('Tentando abrir:', downloadPath);
-        window.electronAPI.openFileByPath(downloadPath);
+        window.electronAPI.openFileByPath(downloadPath, gameName);
       } else if (!downloadPath) {
         setErrorMessage('Caminho do jogo não disponível');
         setDownloadState('error');

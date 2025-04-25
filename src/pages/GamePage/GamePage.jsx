@@ -215,9 +215,9 @@ export default function GamePage() {
           </p>
           <DownloadButton 
             url={gameData.url} 
-            className="install-button"
-            onDownloadComplete={handleDownloadComplete}
-          />
+            gameName={gameData.name}
+            onDownloadComplete={handleDownloadComplete} 
+        />
         </div>
       </div>
 

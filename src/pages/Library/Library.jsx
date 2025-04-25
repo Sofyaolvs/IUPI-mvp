@@ -50,16 +50,32 @@ function Library() {
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
+  // Verificar jogos instalados quando a página carrega
+  useEffect(() => {
+    const checkInstalledGames = async () => {
+      try {
+        console.log("Verificando jogos instalados...");
+        const installedGames = await window.electronAPI.checkInstalledGames();
+        console.log("Jogos instalados:", installedGames);
+        // Aqui você pode atualizar o estado com os jogos instalados se necessário
+      } catch (err) {
+        console.error("Erro ao verificar jogos instalados:", err);
+      }
+    };
+    
+    checkInstalledGames();
+  }, []);
+
   // Carregar todos os jogos
   useEffect(() => {
     const loadGames = async () => {
       setIsLoading(true);
       try {
         const games = await fetchGames();
-        console.log("Jogos carregados:", games); // Log para debug
+        console.log("Jogos carregados:", games); // Log para debug.        
         setAllGames(games);
         setAvailableGames(games.filter(game => !game.installed));
-        setInstalledGames(games.filter(game => game.installed));
+        // Não setamos mais o installedGames aqui, apenas nos jogos disponíveis
         setError('');
       } catch (err) {
         setError(`Erro ao carregar jogos: ${err.message}`);
@@ -213,7 +229,7 @@ function Library() {
       if (!isSearching) {
         // Se não há filtros nem busca, mostrar todos os jogos
         setAvailableGames(allGames.filter(game => !game.installed));
-        setInstalledGames(allGames.filter(game => game.installed));
+        // Não setamos mais o installedGames aqui
         return;
       }
     } else {
@@ -262,9 +278,9 @@ function Library() {
         resultCount: filteredGames.length 
       });
       
-      // Atualizar listas de jogos
+      // Atualizar apenas a lista de jogos disponíveis
       setAvailableGames(filteredGames.filter(game => !game.installed));
-      setInstalledGames(filteredGames.filter(game => game.installed));
+      // Não setamos mais o installedGames aqui
     } catch (err) {
       setError(`Erro ao aplicar filtros: ${err.message}`);
     } finally {
@@ -487,8 +503,15 @@ function Library() {
                     title={game.name || game.title}
                     subject={game.subject}
                     tags={game.tags}
-                  id={game.id}
-                    
+                    id={game.id}
+                    isInstalled={installedGames.some(installed => 
+                      // Verifica se algum jogo instalado tem o mesmo nome ou título
+                      (installed.name && game.name && installed.name.toLowerCase() === game.name.toLowerCase()) ||
+                      (installed.title && game.title && installed.title.toLowerCase() === game.title.toLowerCase()) ||
+                      // Se um tem name e outro tem title, compara-os também
+                      (installed.name && game.title && installed.name.toLowerCase() === game.title.toLowerCase()) ||
+                      (installed.title && game.name && installed.title.toLowerCase() === game.name.toLowerCase())
+                    )}
                   />
                 ))}
               </Carousel>
@@ -503,8 +526,7 @@ function Library() {
                     title={game.name || game.title}
                     subject={game.subject}
                     tags={game.tags}
-                  id={game.id}
-
+                    id={game.id}
                   />
                 ))}
               </Carousel>

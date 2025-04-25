@@ -2,8 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import defaultImage from '../../assets/Telahorizontal.svg';
 
-const GameCard = ({ image, cardImage, title, subject, id }) => {
+const GameCard = ({ image, cardImage, title, subject, id, isInstalled }) => {
   const navigate = useNavigate();
+  console.log(isInstalled+ "-+-----------------------------------------------")
   const [displayImage, setDisplayImage] = React.useState(
     cardImage || image || defaultImage
   );
@@ -15,6 +16,7 @@ const GameCard = ({ image, cardImage, title, subject, id }) => {
 
   const handleGameCardClick = () => {
     // Navigate to the game page with the specific game id
+    console.log("Navegando para o jogo com id: ", id, "esta instalado: ", isInstalled);
     navigate(`/game/${id}`);
   };
 
