@@ -50,80 +50,43 @@ function Library() {
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
-  // Carregar todos os jogos primeiro, depois verificar instalados
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
       setIsLoading(true);
       try {
-        // 1. Primeiro carregamos todos os jogos da API
-        console.log("Carregando jogos da API...");
+        // 1. First load all games from API
+        console.log("Loading games from API...");
         const games = await fetchGames();
-        console.log("Jogos carregados:", games);
+        console.log("Games loaded:", games);
         
-        // 2. Armazenamos os jogos no estado
+        // 2. Store games in state
         setAllGames(games);
-        setAvailableGames(games.filter(game => !game.installed));
         
-        // 3. Depois verificamos quais estão instalados
-        console.log("Verificando jogos instalados...");
+        // 3. Check which games are installed
+        console.log("Checking installed games...");
         const installedGamesData = await window.electronAPI.checkInstalledGames();
-        console.log("Jogos instalados:", installedGamesData);
-        console.log("-----------");
-        for (const game of games) {
-          for (const installedGame of installedGamesData) {
-            console.log(`Comparando jogo: ${game.name} com o jogo instalado: ${installedGame.name}`);
-            
-            // Aqui você pode adicionar a lógica para realizar a comparação que precisar
-          }
-        }
-        console.log("-----------");
+        console.log("Installed games:", installedGamesData);
         
-        // 4. Complementamos as informações dos jogos instalados com os dados da API
-        const enrichedInstalledGames = installedGamesData.map(installedGame => {
-          // Buscar informações complementares na lista de jogos da API
-          const matchedGame = games.find(apiGame => 
-            (apiGame.name && installedGame.name && 
-             apiGame.name.toLowerCase() === installedGame.name.toLowerCase()) ||
-            (apiGame.title && installedGame.title && 
-             apiGame.title.toLowerCase() === installedGame.title.toLowerCase()) ||
-            (apiGame.name && installedGame.title && 
-             apiGame.name.toLowerCase() === installedGame.title.toLowerCase()) ||
-            (apiGame.title && installedGame.name && 
-             apiGame.title.toLowerCase() === installedGame.name.toLowerCase())
-          );
-          
-          // Se encontrou uma correspondência, mesclar as informações
-          if (matchedGame) {
-            console.log(`Complementando dados do jogo instalado: ${installedGame.name || installedGame.title}`);
-            return {
-              ...installedGame,
-              image: installedGame.image || matchedGame.image || matchedGame.cardImage,
-              subject: installedGame.subject || matchedGame.subject,
-              tags: installedGame.tags || matchedGame.tags,
-              description: installedGame.description || matchedGame.description,
-              // Outros campos que podem ser complementados
-            };
-          }
-          
-          // Se não encontrou correspondência, retorna o jogo instalado sem alterações
-          return installedGame;
+        // 4. Set installed games directly from the data we got
+        // This already includes images, titles, and other info
+        setInstalledGames(installedGamesData);
+        
+        // 5. Filter available games to exclude installed ones
+        // Use title or name to match
+        const installedNames = new Set(
+          installedGamesData.map(game => (game.title || game.name).toLowerCase())
+        );
+        
+        const availableGamesFiltered = games.filter(game => {
+          const gameName = (game.name || game.title || '').toLowerCase();
+          return !installedNames.has(gameName);
         });
         
-        // 5. Atualizamos o estado com os jogos instalados enriquecidos
-        setInstalledGames(enrichedInstalledGames);
-        
-        // 6. Log para debug dos jogos instalados com dados complementados
-        console.log("Jogos instalados com dados complementados:");
-        for (const game of enrichedInstalledGames) {
-          console.log(game.name + "|Esta sendo verificado com" + enrichedInstalledGames)
-          const gameTitle = game.name || game.title || "Sem título";
-          console.log(`🎮 INSTALADO: ${gameTitle}`);
-        }
-        
+        setAvailableGames(availableGamesFiltered);
         setError('');
       } catch (err) {
-        setError(`Erro ao carregar jogos: ${err.message}`);
-        console.error("Erro completo:", err);
+        setError(`Error loading games: ${err.message}`);
+        console.error("Full error:", err);
       } finally {
         setIsLoading(false);
       }

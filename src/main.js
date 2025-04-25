@@ -29,7 +29,7 @@ const createWindow = () => {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
-          "img-src 'self' data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
+          "img-src 'self' file: data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
           "connect-src 'self' http://localhost:3000 http://172.18.9.214:3000 http://172.18.9.214:3001;"
         ]
       }
@@ -79,18 +79,99 @@ ipcMain.handle('scrape-game', async (event, gameUrl) => {
 
 ipcMain.handle('check-installed-games', async () => {
   const libDir = path.resolve(process.cwd(), 'lib');
+  const appUrl = new URL(MAIN_WINDOW_WEBPACK_ENTRY).origin;
 
   try {
+    // Check if lib directory exists
+    if (!fs.existsSync(libDir)) {
+      fs.mkdirSync(libDir, { recursive: true });
+      return [];
+    }
+
     const items = fs.readdirSync(libDir, { withFileTypes: true });
+    const installedGames = [];
 
-    const folders = items
-      .filter(item => item.isDirectory())
-      .map(dir => dir.name);
+    // Process each game folder
+    for (const item of items.filter(item => item.isDirectory())) {
+      const gameFolderName = item.name;
+      const gamePath = path.join(libDir, gameFolderName);
+      
+      // Check for game-info.json which would have been created during installation
+      let gameInfo = { title: gameFolderName };
+      const infoPath = path.join(gamePath, 'game-info.json');
+      
+      if (fs.existsSync(infoPath)) {
+        try {
+          const infoContent = fs.readFileSync(infoPath, 'utf8');
+          gameInfo = { ...gameInfo, ...JSON.parse(infoContent) };
+          if (gameInfo.name && !gameInfo.title) {
+            gameInfo.title = gameInfo.name;
+            delete gameInfo.name;
+          }
+        } catch (err) {
+          console.error(`Error reading game info for ${gameFolderName}:`, err);
+        }
+      }
+      
+      // Check for screenshot image
+      const imagesDir = path.join(gamePath, 'images');
+      let image = null;
+      
+      if (fs.existsSync(imagesDir)) {
+        try {
+          const imageFiles = fs.readdirSync(imagesDir)
+            .filter(filename => filename.startsWith('screenshot-') && 
+                  (filename.endsWith('.jpg') || filename.endsWith('.png')));
+          
+          if (imageFiles.length > 0) {
+            // Create a relative path instead of file:// URL
+            const relImagePath = path.join('lib', gameFolderName, 'images', imageFiles[0]);
+            
+            // Normalize path separators for URLs (always use forward slashes)
+            const normalizedPath = relImagePath.split(path.sep).join('/');
+            
+            // Serve the image through your app's protocol
+            image = `${appUrl}/${normalizedPath}`;
+          }
+        } catch (err) {
+          console.error(`Error reading images for ${gameFolderName}:`, err);
+        }
+      }
+      gameInfo.image = image;
+      
+      // Find executable file
+      let executablePath = null;
+      try {
+        const files = fs.readdirSync(gamePath);
+        const exeFile = files.find(file => file.toLowerCase().endsWith('.exe'));
+        if (exeFile) {
+          executablePath = path.join(gamePath, exeFile);
+        }
+      } catch (err) {
+        console.error(`Error finding executable for ${gameFolderName}:`, err);
+      }
+      
+      installedGames.push({
+        id: `installed-${gameInfo.title || gameFolderName}`, // Unique ID for installed games
+        name: gameInfo.title || gameFolderName,
+        title: gameInfo.title || gameFolderName,
+        path: gamePath,
+        image: image,
+        cardImage: image, // Use same image for card
+        description: gameInfo.description || '',
+        subject: gameInfo.subject || '',
+        tags: gameInfo.tags || [],
+        developer: gameInfo.developer || '',
+        executablePath,
+        installed: true
+      });
+    }
 
-    console.log('Pastas encontradas em /lib:', folders);
-    return folders;
+    console.log(`Found ${installedGames.length} installed games:`, 
+      installedGames.map(game => game.title || game.name));
+    return installedGames;
   } catch (err) {
-    console.error('Erro ao ler a pasta /lib:', err.message);
+    console.error('Error reading installed games:', err.message);
     return [];
   }
 });
