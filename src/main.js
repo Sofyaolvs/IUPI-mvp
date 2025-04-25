@@ -220,35 +220,6 @@ const normalizeName = (name) => {
     .replace(/[^a-z0-9\-]/g, ''); // remove outros símbolos
 };
 
-// 🚀 Execução do jogo por caminho
-ipcMain.handle('execute-game', async (event, filePath) => {
-  return new Promise((resolve) => {
-    if (!fs.existsSync(filePath)) {
-      resolve({ error: 'Arquivo não encontra3wsdo: ' + filePath });
-      return;
-    }
-    
-    const dirPath = path.dirname(filePath);
-    const infoFile = path.join(dirPath, 'info.txt');
-    
-    fs.writeFile(infoFile, 'user', (err) => {
-      if (err) {
-        console.error('Erro ao criar info.txt:', err);
-      } else {
-        console.log('info.txt criado.');
-      }
-    });
-    
-    execFile(filePath, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ error: stderr || error.message });
-        return;
-      }
-      resolve({ output: stdout || 'Jogo executado com sucesso!' });
-    });
-  });
-});
-
 // Abrir arquivo pelo caminho
 ipcMain.handle('open-file-by-path', (event, filePath) => {
   console.log('Solicitação para abrir arquivo:', filePath);
