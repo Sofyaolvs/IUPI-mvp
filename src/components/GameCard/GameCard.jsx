@@ -4,7 +4,7 @@ import defaultImage from '../../assets/Telahorizontal.svg';
 
 const GameCard = ({ image, cardImage, title, subject, id, isInstalled }) => {
   const navigate = useNavigate();
-  console.log(isInstalled+ "-+-----------------------------------------------")
+  console.log(isInstalled+ "-"+ title)
   const [displayImage, setDisplayImage] = React.useState(
     cardImage || image || defaultImage
   );

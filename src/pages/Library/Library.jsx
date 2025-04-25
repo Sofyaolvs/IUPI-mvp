@@ -50,42 +50,103 @@ function Library() {
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
-  // Verificar jogos instalados quando a página carrega
+  // Carregar todos os jogos primeiro, depois verificar instalados
   useEffect(() => {
-    const checkInstalledGames = async () => {
-      try {
-        console.log("Verificando jogos instalados...");
-        const installedGames = await window.electronAPI.checkInstalledGames();
-        console.log("Jogos instalados:", installedGames);
-        // Aqui você pode atualizar o estado com os jogos instalados se necessário
-      } catch (err) {
-        console.error("Erro ao verificar jogos instalados:", err);
-      }
-    };
-    
-    checkInstalledGames();
-  }, []);
-
-  // Carregar todos os jogos
-  useEffect(() => {
-    const loadGames = async () => {
+    const loadGamesAndCheckInstalled = async () => {
       setIsLoading(true);
       try {
+        // 1. Primeiro carregamos todos os jogos da API
+        console.log("Carregando jogos da API...");
         const games = await fetchGames();
-        console.log("Jogos carregados:", games); // Log para debug.        
+        console.log("Jogos carregados:", games);
+        
+        // 2. Armazenamos os jogos no estado
         setAllGames(games);
         setAvailableGames(games.filter(game => !game.installed));
-        // Não setamos mais o installedGames aqui, apenas nos jogos disponíveis
+        
+        // 3. Depois verificamos quais estão instalados
+        console.log("Verificando jogos instalados...");
+        const installedGamesData = await window.electronAPI.checkInstalledGames();
+        console.log("Jogos instalados:", installedGamesData);
+        console.log("-----------");
+        for (const game of games) {
+          for (const installedGame of installedGamesData) {
+            console.log(`Comparando jogo: ${game.name} com o jogo instalado: ${installedGame.name}`);
+            
+            // Aqui você pode adicionar a lógica para realizar a comparação que precisar
+          }
+        }
+        console.log("-----------");
+        
+        // 4. Complementamos as informações dos jogos instalados com os dados da API
+        const enrichedInstalledGames = installedGamesData.map(installedGame => {
+          // Buscar informações complementares na lista de jogos da API
+          const matchedGame = games.find(apiGame => 
+            (apiGame.name && installedGame.name && 
+             apiGame.name.toLowerCase() === installedGame.name.toLowerCase()) ||
+            (apiGame.title && installedGame.title && 
+             apiGame.title.toLowerCase() === installedGame.title.toLowerCase()) ||
+            (apiGame.name && installedGame.title && 
+             apiGame.name.toLowerCase() === installedGame.title.toLowerCase()) ||
+            (apiGame.title && installedGame.name && 
+             apiGame.title.toLowerCase() === installedGame.name.toLowerCase())
+          );
+          
+          // Se encontrou uma correspondência, mesclar as informações
+          if (matchedGame) {
+            console.log(`Complementando dados do jogo instalado: ${installedGame.name || installedGame.title}`);
+            return {
+              ...installedGame,
+              image: installedGame.image || matchedGame.image || matchedGame.cardImage,
+              subject: installedGame.subject || matchedGame.subject,
+              tags: installedGame.tags || matchedGame.tags,
+              description: installedGame.description || matchedGame.description,
+              // Outros campos que podem ser complementados
+            };
+          }
+          
+          // Se não encontrou correspondência, retorna o jogo instalado sem alterações
+          return installedGame;
+        });
+        
+        // 5. Atualizamos o estado com os jogos instalados enriquecidos
+        setInstalledGames(enrichedInstalledGames);
+        
+        // 6. Log para debug dos jogos instalados com dados complementados
+        console.log("Jogos instalados com dados complementados:");
+        for (const game of enrichedInstalledGames) {
+          console.log(game.name + "|Esta sendo verificado com" + enrichedInstalledGames)
+          const gameTitle = game.name || game.title || "Sem título";
+          console.log(`🎮 INSTALADO: ${gameTitle}`);
+        }
+        
         setError('');
       } catch (err) {
         setError(`Erro ao carregar jogos: ${err.message}`);
+        console.error("Erro completo:", err);
       } finally {
         setIsLoading(false);
       }
     };
-    loadGames();
+    
+    loadGamesAndCheckInstalled();
   }, []);
 
+
+  function isGameInstalled(gameName) {
+    // Itera sobre todos os jogos instalados
+    for (const installedGame of installedGamesData) {
+      console.log(`Comparando jogo: ${gameName} com o jogo instalado: ${installedGame.name}`);
+  
+      // Verifica se o nome do jogo disponível corresponde ao nome do jogo instalado
+      if (installedGame.name.toLowerCase() === gameName.toLowerCase()) {
+        return true; // Se encontrar, retorna true
+      }
+    }
+  
+    return false; // Se não encontrar o jogo, retorna false
+  }
+  
   // Dados de matérias e tipos de jogos
   const subjects = [
     { id: 'matematica', name: 'Matemática' },
@@ -117,7 +178,7 @@ function Library() {
     }
     setIsFilterOpen(!isFilterOpen);
   };
-
+  
   // Alternar seleção de matéria (apenas para o estado temporário)
   const toggleSubject = (subjectId) => {
     setTempSelectedSubjects(prev => 
@@ -521,12 +582,13 @@ function Library() {
               <Carousel title="Jogos Instalados">
                 {installedGames.map(game => (
                   <GameCard
-                    key={game.id}
+                    key={game.id || `installed-${game.name || game.title}`}
                     image={game.image || game.cardImage}
                     title={game.name || game.title}
                     subject={game.subject}
                     tags={game.tags}
                     id={game.id}
+                    isInstalled={true}
                   />
                 ))}
               </Carousel>
