@@ -4,7 +4,9 @@ import { HashRouter as Router, Routes, Route, Link, useNavigate } from 'react-ro
 import GameManager from './pages/GameManager.jsx';
 import Library from './pages/Library/Library.jsx';
 import SubjectPage from './pages/SubjectsPage/SubjectPage.jsx';
-import GamePage from './pages/GamePage/GamePage.jsx'; // Import the GamePage component
+import GamePage from './pages/GamePage/GamePage.jsx'; 
+import AvailableGames from './pages/AvailableGames/AvaliableGames.jsx';
+import InstalledGames from './pages/InstalledGames/InstalledGames.jsx';
 
 const Navigation = () => {
   const navigate = useNavigate();
@@ -33,6 +35,25 @@ const App = () => {
               <Navigation />
               <div className="app-content">
                 <SubjectPage />
+              </div>
+            </>
+          } />
+
+        <Route path="/available-games" element={
+            <>
+              <Navigation />
+              <div className="app-content">
+                <AvailableGames />
+              </div>
+            </>
+          } />
+
+
+          <Route path="/installed-games" element={
+            <>
+              <Navigation />
+              <div className="app-content">
+                <InstalledGames />
               </div>
             </>
           } />

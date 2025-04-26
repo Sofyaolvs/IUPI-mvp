@@ -22,7 +22,11 @@
   gap: 15px;
 }
 
-
+.see-more-button{
+  background-color: transparent;
+  color: #090B81;
+  
+}
 
 .filter-icon {
   color: #2a52be;

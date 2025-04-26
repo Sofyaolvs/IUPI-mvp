@@ -28,7 +28,6 @@ const subjectsData = [
   { id: 4, title: 'Geografia', image: tigrinho },
   { id: 5, title: 'Ciências', image: tigrinho },
   { id: 6, title: 'Arte', image: tigrinho },
-
 ];
 
 function Library() {
@@ -49,6 +48,9 @@ function Library() {
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
+
+  // Número máximo de jogos a exibir no carrossel antes de mostrar "Ver mais"
+  const MAX_CAROUSEL_GAMES = 6;
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
@@ -94,7 +96,6 @@ function Library() {
     
     loadGamesAndCheckInstalled();
   }, []);
-
 
   function isGameInstalled(gameName) {
     // Itera sobre todos os jogos instalados
@@ -379,6 +380,34 @@ function Library() {
     }
   }, [allGames, logGameTags]);
 
+  // Função para navegar para a página de todos os jogos disponíveis
+  const navigateToAllAvailableGames = () => {
+    // Salvar o estado atual dos filtros no localStorage para recuperar na outra página
+    localStorage.setItem('gameFilters', JSON.stringify({
+      searchTerm,
+      selectedSubjects,
+      selectedGameTypes,
+      isSearching,
+      isFiltering
+    }));
+    
+    navigate('/available-games');
+  };
+
+  // Função para navegar para a página de todos os jogos instalados
+  const navigateToAllInstalledGames = () => {
+    // Salvar o estado atual dos filtros no localStorage para recuperar na outra página
+    localStorage.setItem('gameFilters', JSON.stringify({
+      searchTerm,
+      selectedSubjects,
+      selectedGameTypes,
+      isSearching,
+      isFiltering
+    }));
+    
+    navigate('/installed-games');
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -470,95 +499,73 @@ function Library() {
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            {/* CONTAINER COM TAGS DO FILTRO */}
-            {/* {(isSearching || isFiltering) && (
-              <div className="filter-tag-container">
-                {isSearching && (
-                  <div className="filter-tag search-tag">
-                    <span>Busca: {searchTerm}</span>
-                    <button onClick={handleClearSearch}>×</button>
-                  </div>
-                )}
-                
-                {selectedSubjects.map(subjectId => {
-                  const subject = subjects.find(s => s.id === subjectId);
-                  return subject ? (
-                    <div key={subjectId} className="filter-tag subject-tag">
-                      <span>{subject.name}</span>
-                      <button onClick={() => {
-                        // Remove from applied filters directly
-                        setSelectedSubjects(prev => prev.filter(id => id !== subjectId));
-                        // Also remove from temp if filter popup is open
-                        setTempSelectedSubjects(prev => prev.filter(id => id !== subjectId));
-                      }}>×</button>
-                    </div>
-                  ) : null;
-                })}
-                
-                {selectedGameTypes.map(typeId => {
-                  const gameType = gameTypes.find(t => t.id === typeId);
-                  return gameType ? (
-                    <div key={typeId} className="filter-tag type-tag">
-                      <span>{gameType.name}</span>
-                      <button onClick={() => {
-                        // Remove from applied filters directly
-                        setSelectedGameTypes(prev => prev.filter(id => id !== typeId));
-                        // Also remove from temp if filter popup is open
-                        setTempSelectedGameTypes(prev => prev.filter(id => id !== typeId));
-                      }}>×</button>
-                    </div>
-                  ) : null;
-                })}
-                
-                {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
-                  <button className="clear-all-filters" onClick={handleClearFilters}>
-                    Limpar todos os filtros
-                  </button>
-                )}
+            {availableGames.length > 0 && (
+              <div className="carousel-section">
+                <div className="carousel-header">
+                  <h2>Jogos Disponíveis</h2>
+                  {availableGames.length > MAX_CAROUSEL_GAMES && (
+                    <button 
+                      className="see-more-button"
+                      onClick={navigateToAllAvailableGames}
+                    >
+                      Ver mais
+                    </button>
+                  )}
+                </div>
+                <Carousel>
+                  {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+                    <GameCard
+                      key={game.id || `available-${game.name || game.title}`}
+                      image={game.image}
+                      cardImage={game.cardImage}
+                      title={game.title || game.name}
+                      subject={game.subject}
+                      tags={game.tags}
+                      id={game.id}
+                      isInstalled={false}
+                      executablePath={game.executablePath}
+                      path={game.path}
+                      description={game.description}
+                      url={game.url}
+                    />
+                  ))}
+                </Carousel>
               </div>
-            )} */}
-           
-           {availableGames.length > 0 && (
-            <Carousel title="Jogos Disponíveis">
-              {availableGames.map(game => (
-                <GameCard
-                  key={game.id || `available-${game.name || game.title}`}
-                  image={game.image}
-                  cardImage={game.cardImage}
-                  title={game.title || game.name}
-                  subject={game.subject}
-                  tags={game.tags}
-                  id={game.id}
-                  isInstalled={true}
-                  executablePath={game.executablePath}
-                  path={game.path}
-                  description={game.description}
-                  url={game.url}
-                />
-              ))}
-            </Carousel>
-          )}
+            )}
 
-          {installedGames.length > 0 && (
-            <Carousel title="Jogos Instalados">
-              {installedGames.map(game => (
-                <GameCard
-                  key={game.id || `installed-${game.name || game.title}`}
-                  image={game.image}
-                  cardImage={game.cardImage}
-                  title={game.title || game.name}
-                  subject={game.subject}
-                  tags={game.tags}
-                  id={game.id}
-                  isInstalled={true}
-                  executablePath={game.executablePath}
-                  path={game.path}
-                  description={game.description}
-                  url={game.url}
-                />
-              ))}
-            </Carousel>
-          )}
+            {installedGames.length > 0 && (
+              <div className="carousel-section">
+                <div className="carousel-header">
+                  <h2>Jogos Instalados</h2>
+                  {installedGames.length > MAX_CAROUSEL_GAMES && (
+                    <button 
+                      className="see-more-button"
+                      onClick={navigateToAllInstalledGames}
+                    >
+                      Ver mais
+                    </button>
+                  )}
+                </div>
+                <Carousel>
+                  {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+                    <GameCard
+                      key={game.id || `installed-${game.name || game.title}`}
+                      image={game.image}
+                      cardImage={game.cardImage}
+                      title={game.title || game.name}
+                      subject={game.subject}
+                      tags={game.tags}
+                      id={game.id}
+                      isInstalled={true}
+                      executablePath={game.executablePath}
+                      path={game.path}
+                      description={game.description}
+                      url={game.url}
+                    />
+                  ))}
+                </Carousel>
+              </div>
+            )}
 
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
