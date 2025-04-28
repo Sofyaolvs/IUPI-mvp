@@ -344,13 +344,11 @@ ipcMain.removeAllListeners('open-file-by-path');
 
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
-
   
   const appPath = app.getAppPath(); // /home/kaike/IUPI-mvp/.webpack/main
   const projectRoot = path.resolve(__dirname, '../../');
   const formattedPath = path.join(projectRoot, 'lib', gameName);
   console.log('finalPath:', formattedPath);
-  //const formattedPath = path.join(files[0], files[1]);
 
   try {
     
@@ -373,11 +371,9 @@ ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
     console.error('Erro ao criar userData.txt:', err);
     return;
   }
-  
-  const formattedFilePath = formattedPath;
 
-  if (fs.existsSync(formattedFilePath)) {
-    execFile(formattedFilePath, (error) => {
+  if (fs.existsSync(filePath)) {
+    execFile(filePath, (error) => {
       if (error) {
         console.error('Erro ao abrir arquivo:', error);
       }
