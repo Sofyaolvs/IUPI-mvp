@@ -4,9 +4,12 @@ import './DownloadButton.css';
 
 const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, className }) => {
   // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
-  if(isInstalled) {
-    setDownloadState('completed');
-  }
+  useEffect(() => {
+    if (isInstalled) {
+      setDownloadState('completed');
+    }
+  }, [isInstalled]);
+  
   const downloadUrl = gameUrl || url;
   
   const [downloadState, setDownloadState] = useState('idle'); 
@@ -117,6 +120,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, classNa
 
   const runGame = () => {
     try {
+      console.log('\n\n\n\nTentando executar o jogo...\n\n\n\n');
       if (downloadPath && window.electronAPI) {
         console.log('Tentando abrir:', downloadPath);
         window.electronAPI.openFileByPath(downloadPath, gameName);

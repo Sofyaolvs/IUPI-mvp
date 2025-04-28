@@ -311,14 +311,21 @@ export default function GamePage() {
               Jogar
             </button>
           ) : (
-            <DownloadButton 
-              url={gameData.url} 
-              gameName={gameData.name || gameData.title}
-              onDownloadComplete={() => {
-                setIsInstalled(true);
-                setExecutablePath(true);
-              }} 
-            />
+<DownloadButton 
+  url={gameData.url} 
+  gameName={gameName}
+  onDownloadComplete={(game) => {
+    setIsInstalled(true);
+    if (game.path) {
+      setExecutablePath(game.path);
+      // aqui agora você pode usar gameName
+      console.log(`Executável baixado: ${gameName}`);
+    } else {
+      console.error('Download result inválido:', game);
+    }
+  }} 
+/>
+
           )}
         </div>
       </div>

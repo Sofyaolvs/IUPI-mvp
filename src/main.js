@@ -345,6 +345,8 @@ ipcMain.removeAllListeners('open-file-by-path');
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
   
+  console.log('Solicitação para abrir arquivo:', filePath);
+  
   const txtBasePath = path.resolve(filePath, '../');
 
   try {
