@@ -45,7 +45,7 @@ function AvailableGames() {
             <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m15 6l-6 6l6 6"/>
           </svg>
         </button>
-        <h1>Todos os Jogos Disponíveis</h1>
+        <h1>Jogos Disponíveis</h1>
       </header>
 
       {isLoading ? (

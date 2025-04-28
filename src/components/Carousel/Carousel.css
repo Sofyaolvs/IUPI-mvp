@@ -1,61 +1,78 @@
 /* Carousel.css */
 .carousel-container {
-    margin: 20px 0;
-  }
-  
-  .carousel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  
-  .carousel-title {
-    font-size: 24px;
-    font-weight:600;
-    color: #090B81;
-    line-height: 150%;
-  }
-  
-  .carousel-navigation {
-    display: flex;
-    gap: 8px;
-  }
-  
-  .nav-button {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: white;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
-  }
-  
-  /* .nav-button:hover {
-    background-color: #e0e0e0;
-  } */
-  
-  svg {
-    color: #090B81;
-  }
-  
-  .carousel-items {
-    display: flex;
-    overflow-x: auto;
-    gap: 20px;
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-    align-items: stretch;
-    justify-content: flex-start;
-  }
+  margin: 20px 0;
+}
 
-  
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  .carousel-items::-webkit-scrollbar {
-    display: none;
-  }
+.carousel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.carousel-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #090B81;
+  line-height: 150%;
+}
+
+.carousel-navigation {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.15);
+}
+
+.nav-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.see-more-button {
+  background-color: transparent;
+  border: none;
+  color: #090B81;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity 0.5s;
+  padding: 4px 12px;
+  text-decoration: none;
+}
+
+.see-more-button:hover {
+  /* opacity: 0.8; */
+  text-decoration: underline;
+}
+
+svg {
+  color: #090B81;
+}
+
+.carousel-items {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.carousel-items::-webkit-scrollbar {
+  display: none;
+}

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { fetchGameById } from '../../services/api.jsx'; // Import the API function
+import { fetchGameById } from '../../services/api.jsx';
 import './GamePage.css';
 import defaultImage from '../../assets/Telahorizontal.svg';
-import Loader from '../../components/Loader/Loader.jsx'; // Import your Loader component
+import Loader from '../../components/Loader/Loader.jsx';
 import DownloadButton from '../../components/Download/DownloadButton.jsx';
+import RecommendedGames from '../RecommendedGames/RecommendedGames.jsx';
 
 export default function GamePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -314,19 +315,17 @@ export default function GamePage() {
               url={gameData.url} 
               gameName={gameData.name || gameData.title}
               onDownloadComplete={() => {
-                // After download, update the UI to show Play button
                 setIsInstalled(true);
-                // Reload the page to get the executable path
                 window.location.reload();
               }} 
             />
           )}
         </div>
       </div>
-
-      <div>
-        <h2>Jogos recomendados</h2>
-      </div>
+        <div>
+          <RecommendedGames currentGame={gameData} />
+        </div>
+      {/* Jogos recomendados */}
     </div>
   );
 }

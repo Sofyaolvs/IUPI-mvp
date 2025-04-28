@@ -50,7 +50,7 @@ function Library() {
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
   // Número máximo de jogos a exibir no carrossel antes de mostrar "Ver mais"
-  const MAX_CAROUSEL_GAMES = 6;
+  const MAX_CAROUSEL_GAMES = 8;
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
@@ -87,7 +87,7 @@ function Library() {
         setAvailableGames(availableGamesFiltered);
         setError('');
       } catch (err) {
-        setError(`Error loading games: ${err.message}`);
+        // setError(`Error loading games: ${err.message}`);
         console.error("Full error:", err);
       } finally {
         setIsLoading(false);
@@ -499,73 +499,63 @@ function Library() {
           <Loader message="Carregando jogos" />
         ) : (
           <>
-            {availableGames.length > 0 && (
-              <div className="carousel-section">
-                <div className="carousel-header">
-                  <h2>Jogos Disponíveis</h2>
-                  {availableGames.length > MAX_CAROUSEL_GAMES && (
-                    <button 
-                      className="see-more-button"
-                      onClick={navigateToAllAvailableGames}
-                    >
-                      Ver mais
-                    </button>
-                  )}
-                </div>
-                <Carousel>
-                  {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-                    <GameCard
-                      key={game.id || `available-${game.name || game.title}`}
-                      image={game.image}
-                      cardImage={game.cardImage}
-                      title={game.title || game.name}
-                      subject={game.subject}
-                      tags={game.tags}
-                      id={game.id}
-                      isInstalled={false}
-                      executablePath={game.executablePath}
-                      path={game.path}
-                      description={game.description}
-                      url={game.url}
-                    />
-                  ))}
-                </Carousel>
-              </div>
-            )}
+           {availableGames.length > 0 && (
+  <div className="carousel-section">
+    <Carousel
+      title="Jogos Disponíveis"
+      onSeeMore={navigateToAllAvailableGames}
+      maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
+      totalItems={availableGames.length} // Total de jogos disponíveis (ex: 10)
+    >
+      {/* Renderiza até o máximo de jogos para o carrossel (8) */}
+      {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+        <GameCard
+          key={game.id || `available-${game.name || game.title}`}
+          image={game.image}
+          cardImage={game.cardImage}
+          title={game.title || game.name}
+          subject={game.subject}
+          tags={game.tags}
+          id={game.id}
+          isInstalled={false}
+          executablePath={game.executablePath}
+          path={game.path}
+          description={game.description}
+          url={game.url}
+        />
+      ))}
+    </Carousel>
+  </div>
+)}
 
-            {installedGames.length > 0 && (
-              <div className="carousel-section">
-                <div className="carousel-header">
-                  <h2>Jogos Instalados</h2>
-                  {installedGames.length > MAX_CAROUSEL_GAMES && (
-                    <button 
-                      className="see-more-button"
-                      onClick={navigateToAllInstalledGames}
-                    >
-                      Ver mais
-                    </button>
-                  )}
-                </div>
-                <Carousel>
-                  {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-                    <GameCard
-                      key={game.id || `installed-${game.name || game.title}`}
-                      image={game.image}
-                      cardImage={game.cardImage}
-                      title={game.title || game.name}
-                      subject={game.subject}
-                      tags={game.tags}
-                      id={game.id}
-                      isInstalled={true}
-                      executablePath={game.executablePath}
-                      path={game.path}
-                      description={game.description}
-                      url={game.url}
-                    />
-                  ))}
-                </Carousel>
-              </div>
-            )}
+{installedGames.length > 0 && (
+  <div className="carousel-section">
+    <Carousel
+      title="Jogos Instalados"
+      onSeeMore={navigateToAllInstalledGames}
+      maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
+      totalItems={installedGames.length} // Total de jogos instalados
+    >
+      {/* Renderiza até o máximo de jogos para o carrossel (8) */}
+      {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+        <GameCard
+          key={game.id || `installed-${game.name || game.title}`}
+          image={game.image}
+          cardImage={game.cardImage}
+          title={game.title || game.name}
+          subject={game.subject}
+          tags={game.tags}
+          id={game.id}
+          isInstalled={true}
+          executablePath={game.executablePath}
+          path={game.path}
+          description={game.description}
+          url={game.url}
+        />
+      ))}
+    </Carousel>
+  </div>
+)}
 
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
