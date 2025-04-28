@@ -345,24 +345,21 @@ ipcMain.removeAllListeners('open-file-by-path');
 // Manter o listener antigo para compatibilidade
 ipcMain.on('open-file-by-path', (event, filePath, gameName) => {
   
-  const appPath = app.getAppPath(); // /home/kaike/IUPI-mvp/.webpack/main
-  const projectRoot = path.resolve(__dirname, '../../');
-  const formattedPath = path.join(projectRoot, 'lib', gameName);
-  console.log('finalPath:', formattedPath);
+  const txtBasePath = path.resolve(filePath, '../');
 
   try {
     
-    if (!fs.existsSync(formattedPath)) {
-      fs.mkdirSync(formattedPath, { recursive: true });
-      console.log('Diretório criado:', formattedPath);
+    if (!fs.existsSync(txtBasePath)) {
+      fs.mkdirSync(txtBasePath, { recursive: true });
+      console.log('Diretório criado:', txtBasePath);
     }
 
-    if (fs.existsSync(formattedPath) && fs.lstatSync(formattedPath).isFile()) {
-      formattedPath = formattedPath;
+    if (fs.existsSync(txtBasePath) && fs.lstatSync(txtBasePath).isFile()) {
+      txtBasePath = txtBasePath;
     }
     
-    const txtPath = path.join(formattedPath, 'userData.txt');
-    const userCode = 'user7';
+    const txtPath = path.join(txtBasePath, 'userData.txt');
+    const userCode = 'user1';
 
     fs.writeFileSync(txtPath, userCode, 'utf8');
     console.log('Arquivo userData.txt criado em:', txtPath, 'com código: ', userCode);
