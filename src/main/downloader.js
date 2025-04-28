@@ -437,11 +437,7 @@ async function downloadGameFromItch(url, options = {}) {
         gameInfo: gameInfo
       };
     }
-    
-    // Criar a pasta se não existir
-    if (!fs.existsSync(downloadPath)) {
-      fs.mkdirSync(downloadPath, { recursive: true });
-    }
+
     
 
     
@@ -546,6 +542,11 @@ async function downloadGameFromItch(url, options = {}) {
       } else {
         throw new Error('Não foi possível encontrar o botão de download');
       }
+    }
+    
+    // Criar a pasta se não existir
+    if (!fs.existsSync(downloadPath)) {
+      fs.mkdirSync(downloadPath, { recursive: true });
     }
     
     // Esperar download iniciar

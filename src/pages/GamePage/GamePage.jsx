@@ -316,11 +316,7 @@ export default function GamePage() {
               gameName={gameData.name || gameData.title}
               onDownloadComplete={() => {
                 setIsInstalled(true);
-<<<<<<< HEAD
-                window.location.reload();
-=======
                 setExecutablePath(true);
->>>>>>> fixes/exec-game
               }} 
             />
           )}

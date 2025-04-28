@@ -97,19 +97,15 @@ function Library() {
     loadGamesAndCheckInstalled();
   }, []);
 
-  function isGameInstalled(gameName) {
-    // Itera sobre todos os jogos instalados
-    for (const installedGame of installedGamesData) {
-      console.log(`Comparando jogo: ${gameName} com o jogo instalado: ${installedGame.name}`);
-  
-      // Verifica se o nome do jogo disponível corresponde ao nome do jogo instalado
-      if (installedGame.name.toLowerCase() === gameName.toLowerCase()) {
-        return true; // Se encontrar, retorna true
-      }
-    }
-  
-    return false; // Se não encontrar o jogo, retorna false
-  }
+  const isGameAlreadyInstalled = useCallback((game) => {
+    if (!game || !installedGames.length) return false;
+    
+    const gameName = (game.name || game.title || '').toLowerCase().trim();
+    return installedGames.some(installedGame => {
+      const installedName = (installedGame.name || installedGame.title || '').toLowerCase().trim();
+      return gameName === installedName;
+    });
+  }, [installedGames]);
   
   // Dados de matérias e tipos de jogos
   const subjects = [
@@ -151,6 +147,16 @@ function Library() {
         : [...prev, subjectId]
     );
   };
+
+  const getInstalledGameData = useCallback((game) => {
+    if (!game || !installedGames.length) return null;
+    
+    const gameName = (game.name || game.title || '').toLowerCase().trim();
+    return installedGames.find(installedGame => {
+      const installedName = (installedGame.name || installedGame.title || '').toLowerCase().trim();
+      return gameName === installedName;
+    });
+  }, [installedGames]);
 
   // Alternar seleção de tipo de jogo (apenas para o estado temporário)
   const toggleGameType = (gameTypeId) => {
