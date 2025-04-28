@@ -316,8 +316,7 @@ export default function GamePage() {
               onDownloadComplete={() => {
                 // After download, update the UI to show Play button
                 setIsInstalled(true);
-                // Reload the page to get the executable path
-                window.location.reload();
+                setExecutablePath(true);
               }} 
             />
           )}

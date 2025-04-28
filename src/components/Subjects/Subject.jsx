@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom';
 const Subject = ({ subjects, onSelectSubject }) => {
   const carouselRef = useRef(null);
   const [isAtStart, setIsAtStart] = useState(true);
-  const navigate = useNavigate(); 
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const navigate = useNavigate();
+  
+  const totalSubjects = subjects ? subjects.length : 0;
 
   const handleScroll = () => {
     if (carouselRef.current) {
@@ -12,33 +15,60 @@ const Subject = ({ subjects, onSelectSubject }) => {
     }
   };
 
+  // Handle the automatic carousel rotation - one subject at a time
   useEffect(() => {
     const carousel = carouselRef.current;
-    if (carousel) {
+    if (carousel && subjects && subjects.length > 0) {
       carousel.addEventListener('scroll', handleScroll);
-      return () => carousel.removeEventListener('scroll', handleScroll);
+      
+      // Setup auto-rotation timer
+      const interval = setInterval(() => {
+        // Calculate next index, reset to 0 if at the end
+        const nextIndex = (currentIndex + 1) % totalSubjects;
+        setCurrentIndex(nextIndex);
+        
+        // Calculate scroll position for single item view
+        const itemWidth = carousel.scrollWidth / totalSubjects;
+        carousel.scrollTo({
+          left: nextIndex * itemWidth,
+          behavior: 'smooth'
+        });
+      }, 3000);
+      
+      // Clear event listener and interval on component unmount
+      return () => {
+        carousel.removeEventListener('scroll', handleScroll);
+        clearInterval(interval);
+      };
     }
-  }, []);
+  }, [currentIndex, totalSubjects, subjects]);
 
   const scrollLeft = () => {
-    if (carouselRef.current) {
-      carouselRef.current.scrollBy({
-        left: -300,
+    if (carouselRef.current && subjects) {
+      const newIndex = (currentIndex - 1 + totalSubjects) % totalSubjects;
+      setCurrentIndex(newIndex);
+      
+      const itemWidth = carouselRef.current.scrollWidth / totalSubjects;
+      carouselRef.current.scrollTo({
+        left: newIndex * itemWidth,
         behavior: 'smooth'
       });
     }
   };
 
   const scrollRight = () => {
-    if (carouselRef.current) {
-      carouselRef.current.scrollBy({
-        left: 300,
+    if (carouselRef.current && subjects) {
+      const newIndex = (currentIndex + 1) % totalSubjects;
+      setCurrentIndex(newIndex);
+      
+      const itemWidth = carouselRef.current.scrollWidth / totalSubjects;
+      carouselRef.current.scrollTo({
+        left: newIndex * itemWidth,
         behavior: 'smooth'
       });
     }
   };
 
- 
   const subjectMappings = {
     1: "PORTUGUES",
     2: "MATEMATICA", 
@@ -49,7 +79,6 @@ const Subject = ({ subjects, onSelectSubject }) => {
   };
 
   const handleSubjectClick = (subject) => {
-   
     if (onSelectSubject) {
       onSelectSubject(subject.id);
     }

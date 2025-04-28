@@ -416,6 +416,14 @@ async function downloadGameFromItch(url, options = {}) {
     
     console.log(`Pasta de destino: ${downloadPath}`);
     
+    if(downloadPath.includes('unknown-game')){
+      return {
+        success: false,
+        installed: false,
+        message: 'Download cancelado! (unknown-game)',
+      }
+    }
+    
     // Verificar se o jogo já está instalado
     const gameStatus = isGameInstalled(gameName, baseDownloadPath);
     if (gameStatus.installed) {
@@ -435,13 +443,7 @@ async function downloadGameFromItch(url, options = {}) {
       fs.mkdirSync(downloadPath, { recursive: true });
     }
     
-    // Salvar informações do jogo
-    saveGameInfo(gameInfo, downloadPath);
-    
-    // Baixar imagens do jogo se necessário
-    if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
-      await downloadGameImages(gameInfo.images, downloadPath);
-    }
+
     
     // Iniciar download do jogo
     const browser = await puppeteer.launch({
@@ -585,6 +587,12 @@ async function downloadGameFromItch(url, options = {}) {
       }
     }
     
+    // Salvar informações do jogo após download e extração
+    saveGameInfo(gameInfo, downloadPath);
+    // Baixar imagens do jogo após download e extração
+    if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
+      await downloadGameImages(gameInfo.images, downloadPath);
+    }
     // Encontrar executável na pasta do jogo
     const executablePath = findExecutableInFolder(downloadPath);
     
