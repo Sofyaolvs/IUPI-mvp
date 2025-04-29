@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
 import './DownloadButton.css';
 
-const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, className }) => {
+const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalled, className }) => {
   // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
   useEffect(() => {
     if (isInstalled) {
@@ -93,16 +93,23 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, classNa
       // Chamar a API do Electron para download
       console.log('Chamando electronAPI.downloadGame com URL:', downloadUrl);
       const result = await window.electronAPI.downloadGame(downloadUrl);
-      console.log("------------------------------------"+result.success+ "------------------------"+ result.path)
-      console.log('Resultado do download:', result);
+      console.log(`Download result:`, result);
       
       if (result && result.success) {
-        setDownloadPath(result.path || (result.files && result.files[0]));
+        // Verifica e registra o caminho do executável
+        const execPath = result.executablePath || (result.files && result.files[0]);
+        console.log(`Executable path: ${execPath}`);
+        
+        setDownloadPath(execPath);
         setDownloadState('completed');
         setProgress(100);
         
         if (onDownloadComplete) {
-          onDownloadComplete(result);
+          // CORREÇÃO AQUI: Garante que estamos passando o objeto completo com executablePath
+          onDownloadComplete({
+            ...result,
+            executablePath: execPath
+          });
         }
       } else {
         const msg = result && result.message ? result.message : 'Falha no download';
@@ -120,7 +127,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, classNa
 
   const runGame = () => { 
     try {
-      console.log('\n\n\n\nTentando executar o jogo...\n\n\n\n');
+      console.log('Tentando executar o jogo...');
       if (downloadPath && window.electronAPI) {
         console.log('Tentando abrir:', downloadPath);
         window.electronAPI.openFileByPath(downloadPath, gameName);

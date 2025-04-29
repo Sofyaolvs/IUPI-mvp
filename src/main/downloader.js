@@ -113,33 +113,57 @@ function isGameInstalled(gameTitle, baseDir) {
 /**
  * Encontra arquivos executáveis em uma pasta recursivamente
  * @param {string} dir Diretório para busca
+ * @param {boolean} recursive Se deve buscar em subpastas
  * @returns {string|null} Caminho do executável ou null
  */
-function findExecutableInFolder(dir) {
-  if (!fs.existsSync(dir)) return null;
+function findExecutableInFolder(dir, recursive = true) {
+  if (!fs.existsSync(dir)) {
+    console.log(`Pasta não existe: ${dir}`);
+    return null;
+  }
   
   try {
+    console.log(`Procurando executáveis em: ${dir}`);
     const files = fs.readdirSync(dir);
     
     // Primeiro procurar arquivos .exe na raiz
     const exeFile = files.find(f => f.toLowerCase().endsWith('.exe'));
     if (exeFile) {
-      return path.join(dir, exeFile);
+      const exePath = path.join(dir, exeFile);
+      console.log(`Executável .exe encontrado: ${exePath}`);
+      return exePath;
     }
     
-    // Se não encontrar, procurar em subpastas
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      if (fs.statSync(filePath).isDirectory()) {
-        const result = findExecutableInFolder(filePath);
-        if (result) return result;
+    // Se não encontrou .exe, procurar por arquivos .html
+    const htmlFile = files.find(f => 
+      f.toLowerCase() === 'index.html' || 
+      f.toLowerCase().endsWith('.html')
+    );
+    if (htmlFile) {
+      const htmlPath = path.join(dir, htmlFile);
+      console.log(`Arquivo HTML encontrado para execução na aplicação desktop: ${htmlPath}`);
+      return htmlPath;
+    }
+    
+    // Se não encontrou nada na raiz e recursive=true, procurar em subpastas
+    if (recursive) {
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+          console.log(`Verificando subpasta: ${filePath}`);
+          const result = findExecutableInFolder(filePath, true);
+          if (result) return result;
+        }
       }
     }
+    
+    console.log(`Nenhum executável encontrado em: ${dir}`);
+    return null;
   } catch (err) {
-    console.error("Erro ao procurar executável:", err);
+    console.error(`Erro ao procurar executáveis em ${dir}:`, err);
+    return null;
   }
-  
-  return null;
 }
 
 /**
@@ -218,7 +242,7 @@ function moveFilesUp(sourcePath, targetPath) {
       // Se o destino já existe, remover primeiro
       if (fs.existsSync(targetItemPath)) {
         if (fs.statSync(targetItemPath).isDirectory()) {
-          fs.rmdirSync(targetItemPath, { recursive: true });
+          fs.rmSync(targetItemPath, { recursive: true });
         } else {
           fs.unlinkSync(targetItemPath);
         }
@@ -230,7 +254,7 @@ function moveFilesUp(sourcePath, targetPath) {
     }
     
     // Remove a pasta de origem vazia
-    fs.rmdirSync(sourcePath);
+    fs.rmSync(sourcePath);
     console.log(`Pasta de origem removida: ${path.basename(sourcePath)}`);
     return true;
   } catch (error) {
@@ -329,7 +353,7 @@ function extractZipFile(zipPath, targetDir) {
     
     // Remover a pasta temporária se ainda existir
     if (fs.existsSync(tempExtractPath)) {
-      fs.rmdirSync(tempExtractPath, { recursive: true });
+      fs.rmSync(tempExtractPath, { recursive: true });
     }
     
     // Deletar o arquivo ZIP após extração
@@ -401,7 +425,7 @@ async function downloadGameFromItch(url, options = {}) {
     timeout = 600000,  // 10 minutos
     saveImages = true,
     extractZips = true,
-    deleteZipAfterExtract = true
+    deleteZipAfterExtract = false  // Alterado para false como padrão mais seguro
   } = options;
   
   try {
@@ -494,24 +518,69 @@ async function downloadGameFromItch(url, options = {}) {
     
     // Obter os arquivos mais recentes no diretório
     const recentFiles = getRecentFiles(downloadPath);
+    console.log(`Arquivos encontrados após download: ${recentFiles.map(f => f.filePath).join(', ')}`);
     
     // Verificar se há arquivos .zip para extrair
     if (extractZips) {
+      let extractedFolders = [];
+      
       for (const fileInfo of recentFiles) {
         if (fileInfo.filePath.toLowerCase().endsWith('.zip')) {
-          await extractZipFile(fileInfo.filePath, downloadPath);
+          console.log(`Preparando para extrair: ${fileInfo.filePath}`);
+          
+          try {
+            // Criar uma pasta específica para extração baseada no nome do arquivo zip
+            const zipFileName = path.basename(fileInfo.filePath, '.zip');
+            const extractFolder = path.join(downloadPath, `${zipFileName}_extracted`);
+            
+            // Criar a pasta de extração se não existir
+            if (!fs.existsSync(extractFolder)) {
+              fs.mkdirSync(extractFolder, { recursive: true });
+            }
+            
+            console.log(`Extraindo ${fileInfo.filePath} para ${extractFolder}`);
+            
+            await extractZipFile(fileInfo.filePath, extractFolder);
+            extractedFolders.push(extractFolder);
+            
+            console.log(`Extração de ${fileInfo.filePath} concluída com sucesso!`);
+            
+            if (deleteZipAfterExtract) {
+              try {
+                fs.unlinkSync(fileInfo.filePath);
+                console.log(`Arquivo ZIP removido após extração: ${fileInfo.filePath}`);
+              } catch (unlinkError) {
+                console.error(`Erro ao remover arquivo ZIP: ${unlinkError.message}`);
+              }
+            }
+          } catch (extractError) {
+            console.error(`Erro ao extrair ${fileInfo.filePath}: ${extractError.message}`);
+          }
         }
+      }
+      
+      // Registrar todas as pastas extraídas
+      if (extractedFolders.length > 0) {
+        console.log(`Pastas com arquivos extraídos: ${extractedFolders.join(', ')}`);
       }
     }
     
     // Salvar informações do jogo após download e extração
     saveGameInfo(gameInfo, downloadPath);
+    
     // Baixar imagens do jogo após download e extração
     if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
       await downloadGameImages(gameInfo.images, downloadPath);
     }
-    // Encontrar executável na pasta do jogo
-    const executablePath = findExecutableInFolder(downloadPath);
+    
+    // ALTERAÇÃO IMPORTANTE: Encontrar executável na pasta do jogo com busca recursiva aprimorada
+    const executablePath = findExecutableInFolder(downloadPath, true); // true para busca recursiva
+    
+    if (executablePath) {
+      console.log(`Executável encontrado: ${executablePath}`);
+    } else {
+      console.log('Nenhum executável encontrado na pasta do jogo');
+    }
     
     console.log("Processo de download finalizado");
     

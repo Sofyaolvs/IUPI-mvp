@@ -174,7 +174,27 @@ export default function GamePage() {
   const handlePlayGame = () => {
     if (executablePath) {
       console.log(`Launching game: ${gameData.title || gameData.name} at ${executablePath}`);
-      window.electronAPI.openFileByPath(executablePath, gameData.title || gameData.name);
+      
+      // Send a notification that the game is launching
+      // You could add some UI feedback here if you want
+      
+      // Call the Electron API to launch the game
+      window.electronAPI.openFileByPath(executablePath, gameData.title || gameData.name)
+        .then(result => {
+          if (!result || result.error) {
+            console.error('Error launching game:', result?.error || 'Unknown error');
+            // You could add error notification here
+          } else {
+            console.log('Game launched successfully');
+          }
+        })
+        .catch(error => {
+          console.error('Exception launching game:', error);
+          // You could add error notification here
+        });
+    } else {
+      console.error('No executable path available for this game');
+      // You could add error notification here
     }
   };
 
@@ -311,21 +331,22 @@ export default function GamePage() {
               Jogar
             </button>
           ) : (
-<DownloadButton 
-  url={gameData.url} 
-  gameName={gameName}
-  onDownloadComplete={(game) => {
-    setIsInstalled(true);
-    if (game.executablePath) {
-      setExecutablePath(game.executablePath);
-      // aqui agora você pode usar gameName
-      console.log(`Executável baixado: ${gameName}`);
-    } else {
-      console.error('Download result inválido:', game);
-    }
-  }} 
-/>
-
+            <DownloadButton 
+              url={gameData.url} 
+              gameName={gameName}
+              onDownloadComplete={(game) => {
+                console.log('Download completed with data:', game);
+                setIsInstalled(true);
+                
+                // Garantir que temos o caminho do executável e que ele existe
+                if (game && game.executablePath) {
+                  console.log(`Executável encontrado: ${game.executablePath}`);
+                  setExecutablePath(game.executablePath);
+                } else {
+                  console.error('Download result inválido ou sem caminho de executável:', game);
+                }
+              }} 
+            />
           )}
         </div>
       </div>
