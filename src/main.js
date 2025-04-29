@@ -221,7 +221,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     });
 
     if (alreadyInstalled) {
-      console.log("--------------------------------")
+      console.log("--------------------------------");
       console.log(`Jogo "${normalizedSlug}" já está instalado.`);
       // Monta o caminho como se fosse um download completo
       const exeDir = path.join(process.cwd(), 'lib', normalizedSlug);

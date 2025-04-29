@@ -437,9 +437,6 @@ async function downloadGameFromItch(url, options = {}) {
         gameInfo: gameInfo
       };
     }
-
-    
-
     
     // Iniciar download do jogo
     const browser = await puppeteer.launch({
@@ -459,90 +456,9 @@ async function downloadGameFromItch(url, options = {}) {
     
     // Navegar para a página do jogo
     console.log(`Navegando para ${url}`);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    
-    // Seletores para diferentes tipos de botões de download no Itch.io
-    const seletor = 
-      'a.button.download_btn, ' +
-      'a[href*=".exe"], ' + 
-      'a[download], ' +
-      '.download-button, ' + 
-      '#download-button, ' +
-      'a.btn-download, ' +
-      'button.download, ' +
-      'a[href*=".zip"], ' +
-      'a[href*=".msi"], ' +
-      'a[href*="download"]';
-    
-    console.log(`Procurando pelo botão de download`);
-    
-    try {
-      // Tentativa 1: Seletor direto
-      await page.waitForSelector(seletor, { visible: true, timeout: 10000 });
-      console.log("Botão encontrado via seletor direto");
-      await page.click(seletor);
-      console.log("Clicou no botão de download");
-    } catch (error) {
-      console.log(`Botão direto não encontrado. Buscando alternativas...`);
-      
-      // Tentativa 2: Análise avançada de botões
-      const downloadLinks = await findDownloadButtons(page);
-      console.log(`Encontrados ${downloadLinks.length} possíveis botões de download`);
-      
-      if (downloadLinks.length > 0) {
-        // Pontuar cada link para encontrar o melhor
-        let bestLinkIndex = 0;
-        let bestScore = 0;
-
-        downloadLinks.forEach((link, index) => {
-          let score = 0;
-          const href = (link.href || '').toLowerCase();
-          const text = (link.text || '').toLowerCase();
-          const classes = (link.classes || '').toLowerCase();
-
-          // Pontuações para diferentes características
-          if (href.includes('.exe')) score += 5;
-          if (href.includes('.zip')) score += 4;
-          if (classes.includes('download_btn')) score += 5;
-          if (text.includes('download now')) score += 3;
-          if (text.includes('download')) score += 2;
-          if (text.includes('baixar')) score += 2;
-          if (link.position.y < 500) score += 1; // Links mais no topo têm prioridade
-          
-          console.log(`Link ${index}: "${text}" (score: ${score})`);
-          
-          if (score > bestScore) {
-            bestScore = score;
-            bestLinkIndex = index;
-          }
-        });
-
-        const bestLink = downloadLinks[bestLinkIndex];
-        console.log(`Melhor link encontrado: "${bestLink.text}" (score: ${bestScore})`);
-
-        try {
-          if (bestLink.isButton) {
-            await page.evaluate((index) => {
-              const buttons = Array.from(document.querySelectorAll('button'));
-              const targetButton = buttons.find((_, i) => i === index);
-              if (targetButton) targetButton.click();
-            }, bestLink.index);
-          } else if (bestLink.href) {
-            await page.evaluate((href) => {
-              const links = Array.from(document.querySelectorAll('a'));
-              const targetLink = links.find(link => link.href === href);
-              if (targetLink) targetLink.click();
-            }, bestLink.href);
-          }
-          console.log("Clicou no botão de download alternativo");
-        } catch (clickError) {
-          console.error(`Erro ao clicar no link: ${clickError.message}`);
-          throw new Error('Falha ao clicar no botão de download');
-        }
-      } else {
-        throw new Error('Não foi possível encontrar o botão de download');
-      }
-    }
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });    
+    await page.waitForSelector('a.button.download_btn', { timeout: 60000 });
+    await page.click('a.button.download_btn');
     
     // Criar a pasta se não existir
     if (!fs.existsSync(downloadPath)) {
