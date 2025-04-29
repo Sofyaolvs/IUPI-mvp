@@ -118,7 +118,7 @@ const DownloadButton = ({ url, gameUrl, onDownloadComplete, isInstalled, classNa
     }
   };
 
-  const runGame = () => {
+  const runGame = () => { 
     try {
       console.log('\n\n\n\nTentando executar o jogo...\n\n\n\n');
       if (downloadPath && window.electronAPI) {

@@ -316,8 +316,8 @@ export default function GamePage() {
   gameName={gameName}
   onDownloadComplete={(game) => {
     setIsInstalled(true);
-    if (game.path) {
-      setExecutablePath(game.path);
+    if (game.executablePath) {
+      setExecutablePath(game.executablePath);
       // aqui agora você pode usar gameName
       console.log(`Executável baixado: ${gameName}`);
     } else {
