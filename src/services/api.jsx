@@ -92,7 +92,7 @@ async function processGamesImages(games) {
     console.log(`Processing images for ${gamesNeedingImages.length} games`);
     
     // Limitar processamento paralelo para não sobrecarregar
-    const batchSize = 5;
+    const batchSize = 20;
     for (let i = 0; i < gamesNeedingImages.length; i += batchSize) {
       const batch = gamesNeedingImages.slice(i, i + batchSize);
       
@@ -118,11 +118,7 @@ async function processGamesImages(games) {
       
       const processedBatch = await Promise.all(promises);
       processedGames.push(...processedBatch);
-      
-      // Pequena pausa entre batches para evitar sobrecarga
-      if (i + batchSize < gamesNeedingImages.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+
     }
   }
   

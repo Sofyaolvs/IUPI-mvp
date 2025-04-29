@@ -40,7 +40,7 @@ function InstalledGames() {
     <div className="installed-games-page">
       <header className="page-header">
         <button className="back-button" onClick={handleGoBack}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
+          <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m15 6l-6 6l6 6"/>
           </svg>
           
