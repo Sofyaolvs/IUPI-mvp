@@ -16,6 +16,9 @@
   color: #090B81;
   line-height: 150%;
 }
+.carousel-title:hover{
+  text-decoration: underline;
+}
 
 .carousel-navigation {
   display: flex;

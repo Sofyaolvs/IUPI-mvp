@@ -415,7 +415,7 @@ export default function GamePage() {
     <div className='game-infor'>
       <div>
         <button className="back-button" onClick={handleBackClick}>
-          <ChevronLeft size={44} />
+          <ChevronLeft size={30} />
         </button>
       </div>
 

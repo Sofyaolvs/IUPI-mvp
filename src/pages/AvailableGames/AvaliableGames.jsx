@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Loader from '../../components/Loader/Loader.jsx';
 import { fetchGames } from '../../services/api.jsx';
-
-// import '../../components/GameCard/GameCard.css';
+// Importe o arquivo CSS
+import './AvaliableGames.css';
 
 function AvailableGames() {
   const navigate = useNavigate();
@@ -40,12 +40,12 @@ function AvailableGames() {
   return (
     <div className="available-games-page">
       <header className="page-header">
-        <button className="back-button" onClick={handleGoBack}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24">
+        <button className="back-button-available" onClick={handleGoBack}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m15 6l-6 6l6 6"/>
           </svg>
         </button>
-        <h1>Jogos Disponíveis</h1>
+        <h1 className='games-h1'>Jogos Disponíveis</h1>
       </header>
 
       {isLoading ? (

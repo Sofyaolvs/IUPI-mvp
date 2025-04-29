@@ -1,78 +1,77 @@
 /* RecommendedGames.css */
 
 .game-recommendations {
-    margin: 2rem 0;
-    padding: 0 1rem;
-  }
-  
-  .recommendations-grid {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 1rem; 
-    padding-bottom: 1rem;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE and Edge */
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  
-  .recommendations-grid::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-  }
-  
-  /* Cartões de Recomendação */
-  .recommendation-card {
-    flex: 0 0 auto;
-    width: 224px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    margin-bottom: 0.5rem;
-    display: flex;
-    flex-direction: column;
-   
-  }
-  
-  .recommendation-card:hover {
-    transform: translateY(-5px);
-  }
-  
-  .recommendation-image {
-    width: 224px;
-    height: 300px;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-  }
-  
-  .recommendation-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  
-  .recommendation-title {
-    font-size: 20px;
-    margin-top: 0.2rem;
-    color: #090B81;
-    /* text-align: center; */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: block;
-    width: 100%;
-  }
-  
-  /* Estados de carregamento */
-  .recommendations-loading {
-    padding: 2rem;
-    text-align: center;
-    color: #999;
-  }
-  
-  .no-recommendations {
-    padding: 1rem;
-    text-align: center;
-    color: #999;
-    font-style: italic;
-  }
+  margin: 2rem 0;
+  padding: 0 1rem;
+}
+
+.recommendations-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 1rem; 
+  padding-bottom: 1rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.recommendedTitle{
+  text-decoration: none;
+}
+.recommendations-grid::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Cartões de Recomendação */
+.recommendation-card {
+  flex: 0 0 auto;
+  width: 224px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+ 
+}
+
+
+.recommendation-image {
+  width: 224px;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.recommendation-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recommendation-title {
+  font-size: 20px;
+  margin-top: 0.2rem;
+  color: #090B81;
+  /* text-align: center; */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  width: 100%;
+}
+
+/* Estados de carregamento */
+.recommendations-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+}
+
+.no-recommendations {
+  padding: 1rem;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+}

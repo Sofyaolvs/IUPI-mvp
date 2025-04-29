@@ -1,4 +1,70 @@
-.games-h1{
+.games-h1 {
     color: #090B81;
     font-size: 30px;
-}
+  }
+  
+  /* pageHeader.css */
+  .page-header {
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    padding: 15px 0;
+  }
+  
+  .page-header h1 {
+    margin: 15px 0;
+    margin-left: 4rem;
+    text-align: center;
+    font-size: 1.8rem;
+  }
+  
+  .back-button-installed {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .back-button-installed:hover {
+    opacity: 0.8;
+  }
+  
+  .back-button-installed svg {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .no-results-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 1.2rem;
+    color: #666;
+    padding: 2rem;
+  }
+  
+  /* Responsividade */
+  @media (max-width: 768px) {
+    .page-header h1 {
+      font-size: 1.5rem;
+      margin-left: 2rem;
+    }
+    
+    .back-button-installed svg {
+      width: 35px;
+      height: 35px;
+    }
+  }

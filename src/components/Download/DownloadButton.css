@@ -8,34 +8,31 @@
 }
 
 .download-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  color: #665c00;
-  font-weight: 600;
-  transition: all 0.3s;
-  outline: none;
+  background-color: #EA941B;
+  color: #090B81;
+  font-weight: bold;
+  padding: 12px 32px;
   border: none;
-  background-color: #f9e79f;
+  border-radius: 8px;
+  margin-top: 3rem;
   cursor: pointer;
-  gap: 0.5rem;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.288);
+  transition: background-color 0.3s;
 }
 
-.download-button:hover {
-  background-color: #f5d76e;
-  transform: translateY(-2px);
+.download-button:hover{
+  background-color: #f97316;
 }
 
-.download-button.completed {
+/*.download-button.completed {
   background-color: #c6efd3;
   color: #155724;
 }
 
 .download-button.completed:hover {
   background-color: #b1dfbb;
-}
+}*/
 
 .download-button.error {
   background-color: #f8d7da;
@@ -68,7 +65,7 @@
 
 .progress-bar {
   width: 100%;
-  background-color: #fffbdb;
+  background-color: #eea86f;
   border-radius: 9999px;
   height: 0.625rem;
   margin-top: 0.75rem;
@@ -76,7 +73,7 @@
 }
 
 .progress {
-  background-color: #f5d76e;
+  background-color: #dd7e02;
   height: 100%;
   border-radius: 9999px;
   transition: width 0.3s ease-in-out;

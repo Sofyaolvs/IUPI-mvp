@@ -1,23 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// Adjust these import paths to match your project structure
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Loader from '../../components/Loader/Loader.jsx';
 import { fetchGames } from '../../services/api.jsx';
 
-// Import any necessary styles
 import './SubjectPage.css';
 
 const SubjectPage = () => {
   const navigate = useNavigate();
-  const { subject } = useParams(); // subject da URL
+  const { subject } = useParams();
   const [games, setGames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [subjectName, setSubjectName] = useState('');
 
-  // p ver se bate com os valores do enum q vem da api
   const subjectDisplayNames = {
     'portugues': 'Língua Portuguesa',
     'matematica': 'Matemática',
@@ -32,23 +29,14 @@ const SubjectPage = () => {
       setIsLoading(true);
       try {
         const allGames = await fetchGames();
-        console.log("All games:", allGames);
-        
         
         const subjectEnum = subject.toUpperCase();
-        
-        const filteredGames = allGames.filter(game => {
-         
-          return game.subject === subjectEnum;
-        });
-        
-        console.log(`Filtered games for subject "${subject}":`, filteredGames);
-        
+        const filteredGames = allGames.filter(game => game.subject === subjectEnum);
 
-        const displayName = subjectDisplayNames[subject.toLowerCase()] || 
-                          subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
-        setSubjectName(displayName);
+        const displayName = subjectDisplayNames[subject.toLowerCase()] ||
+          subject.charAt(0).toUpperCase() + subject.slice(1).toLowerCase();
         
+        setSubjectName(displayName);
         setGames(filteredGames);
         setError('');
       } catch (err) {
@@ -58,7 +46,7 @@ const SubjectPage = () => {
         setIsLoading(false);
       }
     };
-    
+
     if (subject) {
       loadGames();
     }
@@ -71,8 +59,10 @@ const SubjectPage = () => {
   return (
     <div className="subject-page">
       <header className="subject-header">
-        <button className="back-button" onClick={goBack}>
-          ← Voltar
+        <button className="back-button-subject" onClick={goBack}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m15 6l-6 6l6 6"/>
+          </svg>
         </button>
         <h1 className="subject-title">{subjectName}</h1>
       </header>

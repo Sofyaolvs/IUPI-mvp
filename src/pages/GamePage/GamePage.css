@@ -242,21 +242,23 @@
   }
 
   .play-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 4px;
-    font-size: 16px;
+    background-color: #EA941B;
+    color: #090B81;
     font-weight: bold;
+    padding: 12px 32px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 3rem;
     cursor: pointer;
-    margin-top: 20px;
-    transition: background-color 0.3s ease;
+    font-size: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.288);
+    transition: background-color 0.3s;
   }
   
-  .play-button:hover {
-    background-color: #45a049;
-  }
+.play-button:hover {
+  background-color: #f97316;
+
+}
   
   
   @media (min-width: 768px) {
