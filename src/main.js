@@ -12,6 +12,9 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow;
 
+// Image cache to improve performance
+const imageCache = new Map();
+
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 800,
@@ -36,15 +39,13 @@ const createWindow = () => {
     });
   });
   
-
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   
   // Abre DevTools em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
- }
+  }
 };
-
 
 app.whenReady().then(() => {
   createWindow();
@@ -63,6 +64,115 @@ app.on('window-all-closed', () => {
 });
 
 // 📡 HANDLERS IPC //
+
+// Handler for getting images as Base64
+ipcMain.handle('get-image-base64', async (event, imagePath) => {
+  try {
+    // Check if the image is already in the cache
+    if (imageCache.has(imagePath)) {
+      return imageCache.get(imagePath);
+    }
+    
+    console.log('Getting image as Base64:', imagePath);
+    
+    // Handle various path formats
+    let resolvedPath = imagePath;
+    
+    // If it's a relative path
+    if (!path.isAbsolute(imagePath)) {
+      // If it starts with 'lib/', resolve from app root
+      if (imagePath.startsWith('lib/') || imagePath.startsWith('/lib/')) {
+        resolvedPath = path.join(process.cwd(), imagePath.replace(/^\//, ''));
+      } else {
+        // Try multiple potential base paths
+        const potentialPaths = [
+          path.join(process.cwd(), imagePath),
+          path.join(process.cwd(), 'lib', imagePath),
+          // If we have a path like "images/screenshot-1.jpg"
+          imagePath.includes('images/') ? 
+            path.join(process.cwd(), imagePath) : 
+            path.join(process.cwd(), 'images', imagePath)
+        ];
+        
+        // Find the first path that exists
+        for (const potentialPath of potentialPaths) {
+          if (fs.existsSync(potentialPath)) {
+            resolvedPath = potentialPath;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Check if the file exists
+    if (!fs.existsSync(resolvedPath)) {
+      console.error(`Image file not found: ${resolvedPath}`);
+      
+      // Try one more approach: if the path has game name and images folder
+      const regex = /([^/\\]+)\/images\/([^/\\]+)$/;
+      const matches = imagePath.match(regex);
+      
+      if (matches && matches.length >= 3) {
+        const gameName = matches[1];
+        const imageName = matches[2];
+        
+        // Try to find the game folder in the lib directory
+        const libPath = path.join(process.cwd(), 'lib');
+        if (fs.existsSync(libPath)) {
+          const gameDir = path.join(libPath, gameName);
+          if (fs.existsSync(gameDir)) {
+            const imageDir = path.join(gameDir, 'images');
+            if (fs.existsSync(imageDir)) {
+              const imagePath = path.join(imageDir, imageName);
+              if (fs.existsSync(imagePath)) {
+                console.log(`Found image at: ${imagePath}`);
+                resolvedPath = imagePath;
+              }
+            }
+          }
+        }
+      }
+      
+      // If still not found
+      if (!fs.existsSync(resolvedPath)) {
+        throw new Error(`Image file not found: ${imagePath}`);
+      }
+    }
+    
+    // Read the file and convert to Base64
+    const imageBuffer = fs.readFileSync(resolvedPath);
+    
+    // Determine MIME type based on file extension
+    let mimeType = 'image/jpeg'; // Default
+    if (resolvedPath.toLowerCase().endsWith('.png')) {
+      mimeType = 'image/png';
+    } else if (resolvedPath.toLowerCase().endsWith('.gif')) {
+      mimeType = 'image/gif';
+    } else if (resolvedPath.toLowerCase().endsWith('.webp')) {
+      mimeType = 'image/webp';
+    }
+    
+    // Create the Base64 data URL
+    const base64Image = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+    
+    // Store in cache
+    imageCache.set(imagePath, base64Image);
+    
+    // Return the Base64 string
+    return base64Image;
+  } catch (error) {
+    console.error('Error getting image as Base64:', error);
+    throw error;
+  }
+});
+
+// Optional: Add a cache cleanup handler
+ipcMain.handle('clear-image-cache', () => {
+  const cacheSize = imageCache.size;
+  imageCache.clear();
+  console.log(`Cleared image cache (${cacheSize} entries)`);
+  return { success: true, entriesCleared: cacheSize };
+});
 
 ipcMain.handle('scrape-game', async (event, gameUrl) => {
   try {
@@ -124,14 +234,11 @@ ipcMain.handle('check-installed-games', async () => {
                   (filename.endsWith('.jpg') || filename.endsWith('.png')));
           
           if (imageFiles.length > 0) {
-            // Create a relative path instead of file:// URL
-            const relImagePath = path.join('lib', gameFolderName, 'images', imageFiles[0]);
+            // Create path to the image that will be loaded via getImageBase64
+            const imagePath = path.join('lib', gameFolderName, 'images', imageFiles[0]);
             
             // Normalize path separators for URLs (always use forward slashes)
-            const normalizedPath = relImagePath.split(path.sep).join('/');
-            
-            // Serve the image through your app's protocol
-            image = `${appUrl}/${normalizedPath}`;
+            image = imagePath.split(path.sep).join('/');
           }
         } catch (err) {
           console.error(`Error reading images for ${gameFolderName}:`, err);
@@ -720,3 +827,5 @@ ipcMain.handle('extractAndLaunchZip', async (event, zipPath, gameName) => {
     return { success: false, error: error.message };
   }
 });
+
+module.exports = { app, BrowserWindow, ipcMain };

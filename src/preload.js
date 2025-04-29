@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Existing methods
   scrapeGame: (url) => ipcRenderer.invoke('scrape-game', url),
   downloadGame: (url, strategy = 'default') => ipcRenderer.invoke('download-game', url, strategy),
   openFileByPath: (filePath, gameName) => {
@@ -13,5 +14,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkInstalledGames: () => ipcRenderer.invoke('check-installed-games'),
   findExecutableInFolder: (folderPath) => ipcRenderer.invoke('findExecutableInFolder', folderPath),
   extractAndLaunchZip: (zipPath, gameName) => ipcRenderer.invoke('extractAndLaunchZip', zipPath, gameName),
-
+  
+  // New method for loading images as base64
+  getImageBase64: async (imagePath) => {
+    try {
+      return await ipcRenderer.invoke('get-image-base64', imagePath);
+    } catch (error) {
+      console.error('Error in getImageBase64:', error);
+      throw error;
+    }
+  },
+  
+  // Optional utility for clearing the image cache
+  clearImageCache: () => ipcRenderer.invoke('clear-image-cache')
 });

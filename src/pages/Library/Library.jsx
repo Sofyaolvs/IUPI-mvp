@@ -67,7 +67,6 @@ function Library() {
         // 3. Check which games are installed
         console.log("Checking installed games...");
         const installedGamesData = await window.electronAPI.checkInstalledGames();
-        console.log("Installed games:", installedGamesData);
         
         // 4. Set installed games directly from the data we got
         // This already includes images, titles, and other info
@@ -506,62 +505,62 @@ function Library() {
         ) : (
           <>
            {availableGames.length > 0 && (
-  <div className="carousel-section">
-    <Carousel
-      title="Jogos Disponíveis"
-      onSeeMore={navigateToAllAvailableGames}
-      maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-      totalItems={availableGames.length} // Total de jogos disponíveis (ex: 10)
-    >
-      {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-      {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-        <GameCard
-          key={game.id || `available-${game.name || game.title}`}
-          image={game.image}
-          cardImage={game.cardImage}
-          title={game.title || game.name}
-          subject={game.subject}
-          tags={game.tags}
-          id={game.id}
-          isInstalled={false}
-          executablePath={game.executablePath}
-          path={game.path}
-          description={game.description}
-          url={game.url}
-        />
-      ))}
-    </Carousel>
-  </div>
-)}
+              <div className="carousel-section">
+                <Carousel
+                  title="Jogos Disponíveis"
+                  onSeeMore={navigateToAllAvailableGames}
+                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
+                  totalItems={availableGames.length} // Total de jogos disponíveis (ex: 10)
+                >
+                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
+                  {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+                    <GameCard
+                      key={game.id || `available-${game.name || game.title}`}
+                      image={game.image}
+                      cardImage={game.cardImage}
+                      title={game.title || game.name}
+                      subject={game.subject}
+                      tags={game.tags}
+                      id={game.id}
+                      isInstalled={false}
+                      executablePath={game.executablePath}
+                      path={game.path}
+                      description={game.description}
+                      url={game.url}
+                    />
+                  ))}
+                </Carousel>
+              </div>
+            )}
 
-{installedGames.length > 0 && (
-  <div className="carousel-section">
-    <Carousel
-      title="Jogos Instalados"
-      onSeeMore={navigateToAllInstalledGames}
-      maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-      totalItems={installedGames.length} // Total de jogos instalados
-    >
-      {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-      {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-        <GameCard
-          key={game.id || `installed-${game.name || game.title}`}
-          image={game.image}
-          cardImage={game.cardImage}
-          title={game.title || game.name}
-          subject={game.subject}
-          tags={game.tags}
-          id={game.id}
-          isInstalled={true}
-          executablePath={game.executablePath}
-          path={game.path}
-          description={game.description}
-          url={game.url}
-        />
-      ))}
-    </Carousel>
-  </div>
-)}
+            {installedGames.length > 0 && (
+              <div className="carousel-section">
+                <Carousel
+                  title="Jogos Instalados"
+                  onSeeMore={navigateToAllInstalledGames}
+                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
+                  totalItems={installedGames.length} // Total de jogos instalados
+                >
+                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
+                  {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+                <GameCard
+                  key={game.id || `installed-${game.name || game.title}`}
+                  image={game.image}
+                  cardImage={game.cardImage}
+                  title={game.title || game.name}
+                  subject={game.subject}
+                  tags={game.tags}
+                  id={game.id}
+                  isInstalled={true}
+                  executablePath={game.executablePath}
+                  path={game.path}
+                  description={game.description}
+                  url={game.url}
+                />
+                  ))}
+                </Carousel>
+              </div>
+            )}
 
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
