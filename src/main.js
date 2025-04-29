@@ -466,3 +466,257 @@ ipcMain.on('open-file-by-path', async (event, filePath, gameName) => {
   }
 });
 
+ipcMain.handle('findExecutableInFolder', async (event, folderPath) => {
+  try {
+    console.log('Searching for executable in folder:', folderPath);
+    
+    if (!folderPath || !fs.existsSync(folderPath)) {
+      console.error('Invalid folder path or folder does not exist:', folderPath);
+      return null;
+    }
+    
+    // Use the existing findExecutableInFolder function if you have it
+    // or implement a simplified version here
+    const findExecutable = (dir, recursive = true) => {
+      if (!fs.existsSync(dir)) return null;
+      
+      try {
+        console.log(`Checking for executables in: ${dir}`);
+        const files = fs.readdirSync(dir);
+        
+        // First look for .exe files
+        const exeFile = files.find(f => f.toLowerCase().endsWith('.exe'));
+        if (exeFile) {
+          const exePath = path.join(dir, exeFile);
+          console.log(`Found .exe file: ${exePath}`);
+          return exePath;
+        }
+        
+        // Also look for HTML files for WebGL games
+        const htmlFile = files.find(f => 
+          f.toLowerCase() === 'index.html' || 
+          f.toLowerCase().endsWith('.html')
+        );
+        if (htmlFile) {
+          const htmlPath = path.join(dir, htmlFile);
+          console.log(`Found HTML file: ${htmlPath}`);
+          return htmlPath;
+        }
+        
+        // If not found and recursive is true, search subfolders
+        if (recursive) {
+          for (const file of files) {
+            const filePath = path.join(dir, file);
+            
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+              const result = findExecutable(filePath, true);
+              if (result) return result;
+            }
+          }
+        }
+        
+        return null;
+      } catch (err) {
+        console.error(`Error searching directory ${dir}:`, err);
+        return null;
+      }
+    };
+    
+    // Search the directory for executables
+    const executablePath = findExecutable(folderPath, true);
+    
+    // Also check if there are any "extracted" folders that might contain executables
+    if (!executablePath) {
+      console.log('No executable found in main folder, checking extracted folders...');
+      
+      try {
+        const extractedFolders = fs.readdirSync(folderPath, { withFileTypes: true })
+          .filter(dirent => dirent.isDirectory() && dirent.name.includes('_extracted'))
+          .map(dirent => path.join(folderPath, dirent.name));
+        
+        for (const extractedFolder of extractedFolders) {
+          console.log(`Checking extracted folder: ${extractedFolder}`);
+          const extractedExecutable = findExecutable(extractedFolder, true);
+          if (extractedExecutable) {
+            console.log(`Found executable in extracted folder: ${extractedExecutable}`);
+            return extractedExecutable;
+          }
+        }
+      } catch (err) {
+        console.error('Error searching extracted folders:', err);
+      }
+    }
+    
+    return executablePath;
+  } catch (error) {
+    console.error('Error in findExecutableInFolder handler:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('extractAndLaunchZip', async (event, zipPath, gameName) => {
+  try {
+    console.log('Extracting and launching ZIP file:', zipPath);
+    
+    if (!zipPath || !fs.existsSync(zipPath)) {
+      console.error('ZIP file does not exist:', zipPath);
+      return { success: false, error: 'ZIP file not found' };
+    }
+    
+    // Create extraction folder
+    const gameFolder = path.dirname(zipPath);
+    const zipFileName = path.basename(zipPath, '.zip');
+    const extractFolder = path.join(gameFolder, `${zipFileName}_extracted`);
+    
+    console.log('Extracting to folder:', extractFolder);
+    
+    // Create the folder if it doesn't exist
+    if (!fs.existsSync(extractFolder)) {
+      fs.mkdirSync(extractFolder, { recursive: true });
+    }
+    
+    // Extract the ZIP file
+    try {
+      const AdmZip = require('adm-zip');
+      const zip = new AdmZip(zipPath);
+      zip.extractAllTo(extractFolder, true);
+      console.log('ZIP file extracted successfully');
+    } catch (extractError) {
+      console.error('Error extracting ZIP file:', extractError);
+      return { success: false, error: 'Failed to extract ZIP file: ' + extractError.message };
+    }
+    
+    // Find executable in the extracted folder
+    const findExecutable = (dir, recursive = true) => {
+      if (!fs.existsSync(dir)) return null;
+      
+      try {
+        console.log(`Checking for executables in: ${dir}`);
+        const files = fs.readdirSync(dir);
+        
+        // First look for .exe files
+        const exeFile = files.find(f => f.toLowerCase().endsWith('.exe'));
+        if (exeFile) {
+          const exePath = path.join(dir, exeFile);
+          console.log(`Found .exe file: ${exePath}`);
+          return exePath;
+        }
+        
+        // Also look for HTML files for WebGL games
+        const htmlFile = files.find(f => 
+          f.toLowerCase() === 'index.html' || 
+          f.toLowerCase().endsWith('.html')
+        );
+        if (htmlFile) {
+          const htmlPath = path.join(dir, htmlFile);
+          console.log(`Found HTML file: ${htmlPath}`);
+          return htmlPath;
+        }
+        
+        // If not found and recursive is true, search subfolders
+        if (recursive) {
+          for (const file of files) {
+            const filePath = path.join(dir, file);
+            
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+              const result = findExecutable(filePath, true);
+              if (result) return result;
+            }
+          }
+        }
+        
+        return null;
+      } catch (err) {
+        console.error(`Error searching directory ${dir}:`, err);
+        return null;
+      }
+    };
+    
+    // Find executable in extracted folder
+    const executablePath = findExecutable(extractFolder, true);
+    
+    if (!executablePath) {
+      console.error('No executable found in extracted folder');
+      return { success: false, error: 'No executable found in extracted folder' };
+    }
+    
+    console.log('Found executable after extraction:', executablePath);
+    
+    // Create userData.txt in the same directory as the executable
+    const txtBasePath = path.dirname(executablePath);
+    
+    try {
+      const txtPath = path.join(txtBasePath, 'userData.txt');
+      const userCode = 'user1';
+      fs.writeFileSync(txtPath, userCode, 'utf8');
+      console.log('Created userData.txt file at:', txtPath);
+    } catch (txtError) {
+      console.error('Error creating userData.txt:', txtError);
+    }
+    
+    // Launch the executable
+    try {
+      // Check platform and use appropriate launch method
+      const platform = process.platform;
+      
+      if (platform === 'win32') {
+        // Windows
+        execFile(executablePath, (error) => {
+          if (error) {
+            console.error('Error launching game on Windows:', error);
+          } else {
+            console.log('Game launched successfully on Windows');
+          }
+        });
+      } else if (platform === 'linux') {
+        // Linux - use Wine
+        fs.chmodSync(executablePath, '755'); // Make executable
+        
+        const { spawn } = require('child_process');
+        const wineProcess = spawn('wine', [executablePath], {
+          detached: true,
+          stdio: 'ignore',
+          cwd: path.dirname(executablePath)
+        });
+        
+        wineProcess.on('error', (err) => {
+          console.error('Error launching game with Wine:', err);
+        });
+        
+        wineProcess.unref();
+        console.log('Game launched with Wine, PID:', wineProcess.pid);
+      } else if (platform === 'darwin') {
+        // macOS - use Wine
+        const { spawn } = require('child_process');
+        const wineProcess = spawn('wine', [executablePath], {
+          detached: true,
+          stdio: 'ignore',
+          cwd: path.dirname(executablePath)
+        });
+        
+        wineProcess.on('error', (err) => {
+          console.error('Error launching game with Wine on macOS:', err);
+        });
+        
+        wineProcess.unref();
+        console.log('Game launched with Wine on macOS, PID:', wineProcess.pid);
+      }
+      
+      return { 
+        success: true, 
+        executablePath,
+        extractFolder
+      };
+    } catch (launchError) {
+      console.error('Error launching game:', launchError);
+      return { 
+        success: false, 
+        error: 'Failed to launch game: ' + launchError.message,
+        executablePath  // Still return the path so the caller knows where it is
+      };
+    }
+  } catch (error) {
+    console.error('Error in extractAndLaunchZip handler:', error);
+    return { success: false, error: error.message };
+  }
+});

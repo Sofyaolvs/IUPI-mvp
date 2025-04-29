@@ -11,4 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadProgress: (callback) => ipcRenderer.on('download-progress', callback),
   removeDownloadProgress: (callback) => ipcRenderer.removeListener('download-progress', callback),
   checkInstalledGames: () => ipcRenderer.invoke('check-installed-games'),
+  findExecutableInFolder: (folderPath) => ipcRenderer.invoke('findExecutableInFolder', folderPath),
+  extractAndLaunchZip: (zipPath, gameName) => ipcRenderer.invoke('extractAndLaunchZip', zipPath, gameName),
+
 });

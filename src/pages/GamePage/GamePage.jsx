@@ -25,11 +25,16 @@ export default function GamePage() {
         setLoading(true);
         setError('');
         
+        console.log('Loading game data for ID:', id);
+        
         // First, get the list of all installed games to check against
         const installedGames = await window.electronAPI.checkInstalledGames();
+        console.log('Installed games:', installedGames);
         
         // Check if this is an installed game first (ID starts with 'installed-')
         if (id.startsWith('installed-')) {
+          console.log('Loading installed game with ID:', id);
+          
           // Try to get data from sessionStorage first
           const storedData = sessionStorage.getItem('installedGameData');
           
@@ -38,9 +43,37 @@ export default function GamePage() {
             
             // If we have stored data with matching ID, use it
             if (parsedData && parsedData.id === id) {
+              console.log('Loading game data from session storage:', parsedData);
+              console.log('Executable path from session:', parsedData.executablePath);
+              
               setGameData(parsedData);
               setIsInstalled(true);
-              setExecutablePath(parsedData.executablePath);
+              
+              if (parsedData.executablePath) {
+                setExecutablePath(parsedData.executablePath);
+              } else {
+                console.warn('No executable path in session data, will attempt to find it');
+                
+                // If we have a path, try to find the executable
+                if (parsedData.path) {
+                  try {
+                    const exePath = await window.electronAPI.findExecutableInFolder(parsedData.path);
+                    if (exePath) {
+                      console.log('Found executable in game path:', exePath);
+                      setExecutablePath(exePath);
+                      
+                      // Update session storage with the found executable path
+                      const updatedData = { ...parsedData, executablePath: exePath };
+                      sessionStorage.setItem('installedGameData', JSON.stringify(updatedData));
+                    } else {
+                      console.error('No executable found in game path:', parsedData.path);
+                    }
+                  } catch (findError) {
+                    console.error('Error finding executable:', findError);
+                  }
+                }
+              }
+              
               setLoading(false);
               return;
             }
@@ -48,21 +81,74 @@ export default function GamePage() {
           
           // If we don't have stored data, try to find it in installed games list
           const gameName = id.replace('installed-', '');
+          console.log('Looking for installed game with name:', gameName);
           
-          // Try to find the game with matching name
-          const foundGame = installedGames.find(game => 
-            (game.title && game.title.toLowerCase() === gameName.toLowerCase()) ||
-            (game.name && game.name.toLowerCase() === gameName.toLowerCase())
-          );
+          // Try to find the game with matching name (with improved matching logic)
+          const foundGame = installedGames.find(game => {
+            const gameTitle = (game.title || '').toLowerCase().trim();
+            const gameName2 = (game.name || '').toLowerCase().trim();
+            const searchName = gameName.toLowerCase().trim();
+            
+            return gameTitle === searchName || 
+                   gameName2 === searchName || 
+                   gameTitle.includes(searchName) || 
+                   searchName.includes(gameTitle);
+          });
           
           if (foundGame) {
+            console.log('Found installed game:', foundGame);
+            console.log('Executable path for installed game:', foundGame.executablePath);
+            
             // If found, set it as game data
-            setGameData({
+            const gameDataObj = {
               ...foundGame,
+              id: id, // Ensure ID is preserved
               images: foundGame.image ? [foundGame.image] : []
-            });
+            };
+            
+            setGameData(gameDataObj);
             setIsInstalled(true);
-            setExecutablePath(foundGame.executablePath);
+            
+            if (foundGame.executablePath) {
+              setExecutablePath(foundGame.executablePath);
+            } else {
+              console.warn('No executable path found for installed game:', gameName);
+              
+              // Try to find the executable path by checking the file system
+              if (foundGame.path) {
+                console.log('Trying to find executable in game path:', foundGame.path);
+                try {
+                  const exePath = await window.electronAPI.findExecutableInFolder(foundGame.path);
+                  if (exePath) {
+                    console.log('Found executable in game folder:', exePath);
+                    setExecutablePath(exePath);
+                    
+                    // Save the found path to the gameData object
+                    gameDataObj.executablePath = exePath;
+                    
+                    // Store in session for future use
+                    sessionStorage.setItem('installedGameData', JSON.stringify(gameDataObj));
+                  } else {
+                    console.error('No executable found in game folder:', foundGame.path);
+                    
+                    // Check if there are ZIP files that might need extraction
+                    try {
+                      const zipFiles = await window.electronAPI.findZipFilesInFolder(foundGame.path);
+                      if (zipFiles && zipFiles.length > 0) {
+                        console.log('Found ZIP files that might contain the game:', zipFiles);
+                        // We don't auto-extract here, but we could store this information for later
+                        gameDataObj.zipFiles = zipFiles;
+                        sessionStorage.setItem('installedGameData', JSON.stringify(gameDataObj));
+                      }
+                    } catch (zipError) {
+                      console.error('Error checking for ZIP files:', zipError);
+                    }
+                  }
+                } catch (findError) {
+                  console.error('Error finding executable:', findError);
+                }
+              }
+            }
             
             // If the game has a URL, try to get a description via web scraping
             if (foundGame.url) {
@@ -71,11 +157,16 @@ export default function GamePage() {
                 
                 if (!scrapedData.error) {
                   // Update game data with description and additional images
-                  setGameData(prevData => ({
-                    ...prevData,
-                    description: prevData.description || scrapedData.description,
-                    images: [...(prevData.images || []), ...(scrapedData.images || [])].filter(Boolean)
-                  }));
+                  const updatedData = {
+                    ...gameDataObj,
+                    description: gameDataObj.description || scrapedData.description,
+                    images: [...(gameDataObj.images || []), ...(scrapedData.images || [])].filter(Boolean)
+                  };
+                  
+                  setGameData(updatedData);
+                  
+                  // Update session storage
+                  sessionStorage.setItem('installedGameData', JSON.stringify(updatedData));
                 }
               } catch (scrapeError) {
                 console.error('Error scraping game:', scrapeError);
@@ -84,30 +175,58 @@ export default function GamePage() {
             
             setLoading(false);
             return;
+          } else {
+            console.warn(`Installed game not found with name: ${gameName}`);
           }
         }
         
         // If not an installed game or installed game not found, fetch from API
+        console.log('Fetching game from API with ID:', id);
         const game = await fetchGameById(id);
         
         // Check if this game is already installed by comparing name
         const gameName = game.name || game.title;
         if (gameName) {
+          console.log('Checking if game is already installed:', gameName);
           const normalizedName = gameName.toLowerCase().trim();
+          
+          // Improved matching logic
           const matchedInstalledGame = installedGames.find(installedGame => {
             const installedName = (installedGame.name || installedGame.title || '').toLowerCase().trim();
-            return installedName === normalizedName;
+            return installedName === normalizedName || 
+                   installedName.includes(normalizedName) || 
+                   normalizedName.includes(installedName);
           });
           
           if (matchedInstalledGame) {
-            console.log(`Game ${gameName} is already installed`, matchedInstalledGame);
+            console.log(`Game ${gameName} is already installed:`, matchedInstalledGame);
             setIsInstalled(true);
-            setExecutablePath(matchedInstalledGame.executablePath);
+            
+            if (matchedInstalledGame.executablePath) {
+              console.log('Using executable path from installed game:', matchedInstalledGame.executablePath);
+              setExecutablePath(matchedInstalledGame.executablePath);
+            } else if (matchedInstalledGame.path) {
+              console.log('Searching for executable in installed game path:', matchedInstalledGame.path);
+              try {
+                const exePath = await window.electronAPI.findExecutableInFolder(matchedInstalledGame.path);
+                if (exePath) {
+                  console.log('Found executable in installed game folder:', exePath);
+                  setExecutablePath(exePath);
+                  
+                  // Update the matchedInstalledGame record for future use
+                  matchedInstalledGame.executablePath = exePath;
+                } else {
+                  console.error('No executable found in installed game folder:', matchedInstalledGame.path);
+                }
+              } catch (findError) {
+                console.error('Error finding executable:', findError);
+              }
+            }
             
             // Merge data from API and installed game
-            game.executablePath = matchedInstalledGame.executablePath;
+            game.executablePath = matchedInstalledGame.executablePath || null;
             game.installed = true;
-            game.path = matchedInstalledGame.path;
+            game.path = matchedInstalledGame.path || null;
             
             // If the installed game has an image, use it
             if (matchedInstalledGame.image) {
@@ -172,30 +291,77 @@ export default function GamePage() {
   };
 
   const handlePlayGame = () => {
-    if (executablePath) {
-      console.log(`Launching game: ${gameData.title || gameData.name} at ${executablePath}`);
-      
-      // Send a notification that the game is launching
-      // You could add some UI feedback here if you want
-      
-      // Call the Electron API to launch the game
-      window.electronAPI.openFileByPath(executablePath, gameData.title || gameData.name)
-        .then(result => {
-          if (!result || result.error) {
-            console.error('Error launching game:', result?.error || 'Unknown error');
-            // You could add error notification here
-          } else {
-            console.log('Game launched successfully');
-          }
-        })
-        .catch(error => {
-          console.error('Exception launching game:', error);
-          // You could add error notification here
-        });
-    } else {
+    // First check if we have an executable path
+    if (!executablePath) {
       console.error('No executable path available for this game');
-      // You could add error notification here
+      
+      // If we have a game path but no executable, try to find it
+      if (gameData && gameData.path) {
+        console.log('Attempting to find executable in game path:', gameData.path);
+        
+        window.electronAPI.findExecutableInFolder(gameData.path)
+          .then(foundPath => {
+            if (foundPath) {
+              console.log('Found executable in game folder:', foundPath);
+              setExecutablePath(foundPath);
+              
+              // Launch the game with the found executable
+              launchGameWithPath(foundPath);
+            } else {
+              console.error('Failed to find any executable in game folder');
+              // Show error to user if needed
+            }
+          })
+          .catch(err => {
+            console.error('Error searching for executable:', err);
+            // Show error to user if needed
+          });
+      } else {
+        console.error('No game path available to search for executables');
+        // Show error to user if needed
+      }
+      return;
     }
+    
+    // If we have an executable path, launch the game
+    launchGameWithPath(executablePath);
+  };
+  
+  // Helper function to launch the game with a given path
+  const launchGameWithPath = (path) => {
+    console.log(`Launching game: ${gameData.title || gameData.name} at ${path}`);
+    
+    // Call the Electron API to launch the game
+    window.electronAPI.openFileByPath(path, gameData.title || gameData.name)
+      .then(result => {
+        if (!result || result.error) {
+          console.error('Error launching game:', result?.error || 'Unknown error');
+          
+          // If the executable couldn't be launched and it's a zip file, 
+          // try to extract it first and then launch again
+          if (path.toLowerCase().endsWith('.zip')) {
+            console.log('Attempting to extract ZIP file before launching');
+            
+            // You would need to implement this method in your API
+            window.electronAPI.extractAndLaunchZip(path, gameData.title || gameData.name)
+              .then(extractResult => {
+                if (extractResult && extractResult.success) {
+                  console.log('ZIP extracted and game launched successfully');
+                } else {
+                  console.error('Failed to extract and launch ZIP:', extractResult?.error);
+                }
+              })
+              .catch(extractError => {
+                console.error('Error extracting ZIP:', extractError);
+              });
+          }
+        } else {
+          console.log('Game launched successfully');
+        }
+      })
+      .catch(error => {
+        console.error('Exception launching game:', error);
+      });
   };
 
   // Extract game tags for categories
