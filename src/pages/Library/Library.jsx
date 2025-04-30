@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Carousel from '../../components/Carousel/Carousel.jsx';
@@ -7,6 +7,35 @@ import SearchBar from '../../components/Search/SearchBar.jsx';
 import FilterButton from '../../components/Filter/FilterButton.jsx';
 import Loader from '../../components/Loader/Loader.jsx'; 
 import { fetchGames, searchGames } from '../../services/api.jsx';
+
+// Adicionando função getApiUrl personalizada
+function getApiUrl() {
+  // Verificar se foi forçado o uso da API de homologação
+  if (window.FORCE_HOMOLOG || localStorage.getItem('FORCE_HOMOLOG') === 'true') {
+    const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
+    if (homologUrl) {
+      console.log('Usando API de homologação (forçado):', homologUrl);
+      return homologUrl;
+    }
+  }
+
+  // Detecta ambiente local
+  const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
+  if (isLocal) {
+    // Verificar se existe URL de homologação configurada
+    const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
+    if (homologUrl) {
+      console.log('Usando API de homologação:', homologUrl);
+      return homologUrl;
+    }
+    console.log('Usando API local padrão: http://172.18.9.214:3000');
+    return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
+  }
+  
+  // Fallback para produção
+  console.log('Usando API de produção');
+  return '';
+}
 
 // Importação de estilos
 import '../../index.css';
@@ -45,6 +74,75 @@ function Library() {
   const [lastSearchTerm, setLastSearchTerm] = useState('');
   const [isFiltering, setIsFiltering] = useState(false);
   
+  // Add new states for tracking rapid clicks and showing the debug popup
+  const [filterClickCount, setFilterClickCount] = useState(0);
+  const [showDebugPopup, setShowDebugPopup] = useState(false);
+  const clickTimerRef = useRef(null);
+  
+  // Inicializar valores do localStorage, se existirem
+  useEffect(() => {
+    // Carregar valor da URL de homologação do localStorage
+    const savedHomologUrl = localStorage.getItem('HOMOLOG_API_URL');
+    if (savedHomologUrl) {
+      window.HOMOLOG_API_URL = savedHomologUrl;
+      console.log('URL de homologação carregada do localStorage:', savedHomologUrl);
+    }
+    
+    // Carregar configuração de forçar API de homologação
+    const forceHomolog = localStorage.getItem('FORCE_HOMOLOG') === 'true';
+    window.FORCE_HOMOLOG = forceHomolog;
+    if (forceHomolog) {
+      console.log('Uso forçado de API de homologação ativado');
+    }
+  }, []);
+  
+  // Função personalizada para obter a URL da API
+  const getApiUrl = useCallback(() => {
+    // Verificar se foi forçado o uso da API de homologação
+    if (window.FORCE_HOMOLOG || localStorage.getItem('FORCE_HOMOLOG') === 'true') {
+      const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
+      if (homologUrl) {
+        console.log('Usando API de homologação (forçado):', homologUrl);
+        return homologUrl;
+      }
+    }
+
+    // Detecta ambiente local
+    const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
+    if (isLocal) {
+      // Verificar se existe URL de homologação configurada
+      const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
+      if (homologUrl) {
+        console.log('Usando API de homologação:', homologUrl);
+        return homologUrl;
+      }
+      console.log('Usando API local padrão: http://172.18.9.214:3000');
+      return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
+    }
+    
+    // Fallback para produção
+    console.log('Usando API de produção');
+    return '';
+  }, []);
+  
+  // Função personalizada para buscar jogos com a URL correta
+  const fetchGamesCustom = useCallback(async () => {
+    try {
+      const apiUrl = getApiUrl();
+      console.log('Conectando à API:', apiUrl);
+      
+      // Implementação básica se precisarmos substituir a original
+      const response = await fetch(`${apiUrl}/games`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error in fetchGamesCustom:', error);
+      throw error;
+    }
+  }, [getApiUrl]);
+  
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
@@ -58,7 +156,8 @@ function Library() {
       try {
         // 1. First load all games from API
         console.log("Loading games from API...");
-        const games = await fetchGames();
+        // Usar nossa versão modificada do fetchGames que respeita a configuração da API
+        const games = await fetchGamesCustom();
         console.log("Games loaded:", games);
         
         // 2. Store games in state
@@ -94,7 +193,46 @@ function Library() {
     };
     
     loadGamesAndCheckInstalled();
-  }, []);
+  }, [fetchGamesCustom]);
+
+  // Modified toggleFilterPopup to track rapid clicks
+  const toggleFilterPopup = () => {
+    // Increment click count
+    setFilterClickCount(prevCount => {
+      const newCount = prevCount + 1;
+      
+      // Reset timer if it exists
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+      
+      // Set a new timer to reset click count after 5 seconds
+      clickTimerRef.current = setTimeout(() => {
+        setFilterClickCount(0);
+      }, 5000);
+      
+      // Check if we reached 10 clicks
+      if (newCount === 10) {
+        // Show debug popup
+        setShowDebugPopup(true);
+        return 0; // Reset counter
+      }
+      
+      return newCount;
+    });
+    
+    // Original filter popup toggle logic
+    if (!isFilterOpen) {
+      setTempSelectedSubjects([...selectedSubjects]);
+      setTempSelectedGameTypes([...selectedGameTypes]);
+    }
+    setIsFilterOpen(!isFilterOpen);
+  };
+  
+  // Function to close the debug popup
+  const closeDebugPopup = () => {
+    setShowDebugPopup(false);
+  };
 
   const isGameAlreadyInstalled = useCallback((game) => {
     if (!game || !installedGames.length) return false;
@@ -127,16 +265,6 @@ function Library() {
     { id: 'tabuleiro', name: 'Tabuleiro' },
     { id: 'aventura', name: 'Aventura' }
   ];
-
-  // Abrir/fechar o popup de filtro
-  const toggleFilterPopup = () => {
-    // When opening the filter, initialize temp states with current selections
-    if (!isFilterOpen) {
-      setTempSelectedSubjects([...selectedSubjects]);
-      setTempSelectedGameTypes([...selectedGameTypes]);
-    }
-    setIsFilterOpen(!isFilterOpen);
-  };
   
   // Alternar seleção de matéria (apenas para o estado temporário)
   const toggleSubject = (subjectId) => {
@@ -585,6 +713,131 @@ function Library() {
           </>
         )}
       </main>
+
+      {/* Debug popup that appears after 10 clicks */}
+      {showDebugPopup && (
+        <div className="debug-popup-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div className="debug-popup" style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '300px',
+            maxWidth: '90%'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0 }}>Configuração da API</h3>
+              <button 
+                onClick={closeDebugPopup}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <input
+                type="text"
+                placeholder="URL da API de homologação"
+                defaultValue={window.HOMOLOG_API_URL || ''}
+                onChange={e => {
+                  const value = e.target.value.trim();
+                  if (value) {
+                    // Guardar valor na localStorage para persistência
+                    localStorage.setItem('HOMOLOG_API_URL', value);
+                    // Definir variável global
+                    window.HOMOLOG_API_URL = value;
+                    console.log('API URL definida:', window.HOMOLOG_API_URL);
+                  } else {
+                    localStorage.removeItem('HOMOLOG_API_URL');
+                    window.HOMOLOG_API_URL = null;
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!window.FORCE_HOMOLOG}
+                  onChange={e => {
+                    window.FORCE_HOMOLOG = e.target.checked;
+                    localStorage.setItem('FORCE_HOMOLOG', e.target.checked ? 'true' : 'false');
+                  }}
+                  style={{ marginRight: '8px' }}
+                />
+                Forçar uso da API de homologação
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+              <button 
+                onClick={() => {
+                  // Remove os valores
+                  localStorage.removeItem('HOMOLOG_API_URL');
+                  localStorage.removeItem('FORCE_HOMOLOG');
+                  window.HOMOLOG_API_URL = null;
+                  window.FORCE_HOMOLOG = false;
+                  closeDebugPopup();
+                  window.location.reload();
+                }}
+                style={{
+                  width: '48%',
+                  padding: '10px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Limpar
+              </button>
+              
+              <button 
+                onClick={() => {
+                  // Recarregar a página para aplicar a nova URL da API
+                  closeDebugPopup();
+                  window.location.reload();
+                }}
+                style={{
+                  width: '48%',
+                  padding: '10px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <FilterButton 
         isOpen={isFilterOpen}

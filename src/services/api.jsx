@@ -1,4 +1,18 @@
-const API_URL = 'http://172.18.9.214:3001';
+function getApiUrl() {
+  // Detecta ambiente local
+  const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
+  if (isLocal) {
+    return 'http://172.18.9.214:3000'; // ou a porta local correta
+  }
+  // Usa a chave global definida pelo input
+  if (window.HOMOLOG_API_URL) {
+    return window.HOMOLOG_API_URL;
+  }
+  // Fallback: pode retornar uma string vazia ou lançar erro
+  return '';
+}
+
+const API_URL = getApiUrl();
 
 // Cache para armazenar jogos já buscados
 let gamesCache = null;
@@ -32,7 +46,7 @@ export const fetchGames = async (forceRefresh = false) => {
     }
     
     console.log('Fetching fresh games from API');
-    const response = await fetch(`${API_URL}/games`, {
+    const response = await fetch(`${getApiUrl()}/games`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -137,7 +151,7 @@ export const fetchGameById = async (gameId) => {
       }
     }
     
-    const response = await fetch(`${API_URL}/games/${gameId}`, {
+    const response = await fetch(`${getApiUrl()}/games/${gameId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
