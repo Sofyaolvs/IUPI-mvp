@@ -453,12 +453,7 @@ function Library() {
     setIsSearching(!!term);
   }, [lastSearchTerm]);
 
-  // Limpar busca
-  const handleClearSearch = useCallback(() => {
-    setSearchTerm('');
-    setLastSearchTerm('');
-    setIsSearching(false);
-  }, []);
+
 
   // Debug function
   const logGameTags = useCallback(() => {
@@ -550,16 +545,12 @@ function Library() {
           </button>
 
           <SearchBar 
-            onSearch={handleSearch} 
-            debounceTime={500} 
-            initialValue={searchTerm}
-          />
+  onSearch={handleSearch} 
+  debounceTime={500} 
+  initialValue={searchTerm}
+/>
 
-          {isSearching && (
-            <button className="clear-search-button" onClick={handleClearSearch}>
-              Limpar busca
-            </button>
-          )}
+          
         </div>
       </header>
 
@@ -680,15 +671,7 @@ function Library() {
                 ) : (
                   <p>Nenhum jogo disponível</p>
                 )}
-                
-                {(isSearching || isFiltering) && (
-                  <button className="clear-all-button" onClick={() => {
-                    handleClearSearch();
-                    handleClearFilters();
-                  }}>
-                    Limpar todos os filtros
-                  </button>
-                )}
+               
               </div>
             )}
           </>

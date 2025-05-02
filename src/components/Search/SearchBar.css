@@ -1,10 +1,13 @@
 .search-bar {
   margin: 0 20px;
+  display: flex;
+  align-items: center;
 }
 
 .search-bar form {
   display: flex;
   position: relative;
+  flex-grow: 1;
 }
 
 .search-input-container {
@@ -13,8 +16,8 @@
 }
 
 .search-bar input {
-  width: 227px;
-  padding: 0 40px 0 24px; /* Aumentei o padding direito para acomodar o botão limpar */
+  width: 100%;
+  padding: 0 40px 0 24px;
   height: 46px;
   border: 1px solid #ddd;
   border-radius: 20px;
@@ -22,13 +25,14 @@
   color: #090B81;
   outline: none;
   background-color: #ECF1F5;
+  box-sizing: border-box;
 }
 
 .search-bar input:focus {
   border-color: #3498db;
 }
 
-.search-bar button[type="submit"] {
+.search-button {
   position: absolute;
   right: 5px;
   top: 50%;
@@ -45,10 +49,7 @@
 }
 
 .clear-button {
-  position: absolute;
-  right: 32px; 
-  top: 50%;
-  transform: translateY(-50%);
+  margin-left: 8px;
   background: none;
   border: none;
   cursor: pointer;
@@ -58,6 +59,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  height: 46px;
 }
 
 .clear-button:hover {
@@ -66,8 +69,4 @@
 
 .search-icon {
   display: inline-block;
-}
-
-.background-demo--2 {
-  background-image: url('https://api.iconify.design/fluent-emoji-flat/memo.svg');
 }
