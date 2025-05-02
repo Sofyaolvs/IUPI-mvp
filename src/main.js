@@ -24,6 +24,7 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false
     },
+    autoHideMenuBar: true,
   });
 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {

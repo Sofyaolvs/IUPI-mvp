@@ -6,6 +6,7 @@ import Subject from '../../components/Subjects/Subject.jsx';
 import SearchBar from '../../components/Search/SearchBar.jsx';
 import FilterButton from '../../components/Filter/FilterButton.jsx';
 import Loader from '../../components/Loader/Loader.jsx'; 
+import iupi from '../../assets/iupi.png'
 import { fetchGames, searchGames } from '../../services/api.jsx';
 
 // Adicionando função getApiUrl personalizada
@@ -28,8 +29,8 @@ function getApiUrl() {
       console.log('Usando API de homologação:', homologUrl);
       return homologUrl;
     }
-    console.log('Usando API local padrão: http://172.18.9.214:3000');
-    return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
+    console.log('Usando API local padrão: http://localhost:3000');
+    return 'http://localhost:3000'; // Porta corrigida para 3000
   }
   
   // Fallback para produção
@@ -116,8 +117,8 @@ function Library() {
         console.log('Usando API de homologação:', homologUrl);
         return homologUrl;
       }
-      console.log('Usando API local padrão: http://172.18.9.214:3000');
-      return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
+      console.log('Usando API local padrão: http://localhost:3000');
+      return 'http://localhost:3000'; // Porta corrigida para 3000
     }
     
     // Fallback para produção
@@ -148,7 +149,7 @@ function Library() {
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
 
   // Número máximo de jogos a exibir no carrossel antes de mostrar "Ver mais"
-  const MAX_CAROUSEL_GAMES = 8;
+
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
@@ -544,7 +545,20 @@ function Library() {
   return (
     <div className="app">
       <header className="header">
-        <div className="search-container">
+         <div className="search-container">
+        <div className='iupi logo'>
+        <img 
+        src={iupi} 
+        alt="iupi logo" 
+        className='iupi-logo' 
+        style={{ 
+          width: '120px', 
+          height: 'auto',
+          alignSelf: 'flex-start',
+          marginRight: '670px'  // Aumentando o espaço entre o logo e o filtro
+        }} 
+      />
+        </div>
           <button 
             className={`filter-button ${isFiltering ? 'active' : ''}`} 
             onClick={toggleFilterPopup}
@@ -566,6 +580,7 @@ function Library() {
               </span>
             )}
           </button>
+       
 
           <SearchBar 
             onSearch={handleSearch} 
@@ -633,63 +648,62 @@ function Library() {
         ) : (
           <>
            {availableGames.length > 0 && (
-              <div className="carousel-section">
-                <Carousel
-                  title="Jogos Disponíveis"
-                  onSeeMore={navigateToAllAvailableGames}
-                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-                  totalItems={availableGames.length} // Total de jogos disponíveis (ex: 10)
-                >
-                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-                  {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-                    <GameCard
-                      key={game.id || `available-${game.name || game.title}`}
-                      image={game.image}
-                      cardImage={game.cardImage}
-                      title={game.title || game.name}
-                      subject={game.subject}
-                      tags={game.tags}
-                      id={game.id}
-                      isInstalled={false}
-                      executablePath={game.executablePath}
-                      path={game.path}
-                      description={game.description}
-                      url={game.url}
-                    />
-                  ))}
-                </Carousel>
-              </div>
-            )}
+  <div className="carousel-section">
+    <Carousel
+      title="Jogos Disponíveis"
+      onSeeMore={navigateToAllAvailableGames}
+      maxItems={availableGames.length} // Agora usa todos os jogos disponíveis
+      totalItems={availableGames.length}
+    >
+      {/* Renderiza todos os jogos disponíveis */}
+      {availableGames.map(game => (
+        <GameCard
+          key={game.id || `available-${game.name || game.title}`}
+          image={game.image}
+          cardImage={game.cardImage}
+          title={game.title || game.name}
+          subject={game.subject}
+          tags={game.tags}
+          id={game.id}
+          isInstalled={false}
+          executablePath={game.executablePath}
+          path={game.path}
+          description={game.description}
+          url={game.url}
+        />
+      ))}
+    </Carousel>
+  </div>
+)}
 
-            {installedGames.length > 0 && (
-              <div className="carousel-section">
-                <Carousel
-                  title="Jogos Instalados"
-                  onSeeMore={navigateToAllInstalledGames}
-                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-                  totalItems={installedGames.length} // Total de jogos instalados
-                >
-                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-                  {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-                <GameCard
-                  key={game.id || `installed-${game.name || game.title}`}
-                  image={game.image}
-                  cardImage={game.cardImage}
-                  title={game.title || game.name}
-                  subject={game.subject}
-                  tags={game.tags}
-                  id={game.id}
-                  isInstalled={true}
-                  executablePath={game.executablePath}
-                  path={game.path}
-                  description={game.description}
-                  url={game.url}
-                />
-                  ))}
-                </Carousel>
-              </div>
-            )}
-
+{installedGames.length > 0 && (
+  <div className="carousel-section">
+    <Carousel
+      title="Jogos Instalados"
+      onSeeMore={navigateToAllInstalledGames}
+      maxItems={installedGames.length} // Agora usa todos os jogos instalados
+      totalItems={installedGames.length}
+    >
+      {/* Renderiza todos os jogos instalados */}
+      {installedGames.map(game => (
+        <GameCard
+          key={game.id || `installed-${game.name || game.title}`}
+          image={game.image}
+          cardImage={game.cardImage}
+          title={game.title || game.name}
+          subject={game.subject}
+          tags={game.tags}
+          id={game.id}
+          isInstalled={true}
+          executablePath={game.executablePath}
+          path={game.path}
+          description={game.description}
+          url={game.url}
+        />
+      ))}
+    </Carousel>
+  </div>
+)}
             {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
               <div className="no-results-message">
                 {isSearching ? (
