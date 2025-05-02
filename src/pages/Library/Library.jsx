@@ -8,35 +8,6 @@ import FilterButton from '../../components/Filter/FilterButton.jsx';
 import Loader from '../../components/Loader/Loader.jsx'; 
 import { fetchGames, searchGames } from '../../services/api.jsx';
 
-// Adicionando função getApiUrl personalizada
-function getApiUrl() {
-  // Verificar se foi forçado o uso da API de homologação
-  if (window.FORCE_HOMOLOG || localStorage.getItem('FORCE_HOMOLOG') === 'true') {
-    const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
-    if (homologUrl) {
-      console.log('Usando API de homologação (forçado):', homologUrl);
-      return homologUrl;
-    }
-  }
-
-  // Detecta ambiente local
-  const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
-  if (isLocal) {
-    // Verificar se existe URL de homologação configurada
-    const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
-    if (homologUrl) {
-      console.log('Usando API de homologação:', homologUrl);
-      return homologUrl;
-    }
-    console.log('Usando API local padrão: http://172.18.9.214:3000');
-    return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
-  }
-  
-  // Fallback para produção
-  console.log('Usando API de produção');
-  return '';
-}
-
 // Importação de estilos
 import '../../index.css';
 import './Library.css';
@@ -48,6 +19,7 @@ import '../../components/Filter/FilterButton.css';
 // Importação de imagens
 import tigrinho from '../../assets/tigrinho.svg';
 import Telahorizontal from '../../assets/Telahorizontal.svg';
+import iupi from '../../assets/iupi.png'
 
 // Dados das categorias
 const subjectsData = [
@@ -116,8 +88,8 @@ function Library() {
         console.log('Usando API de homologação:', homologUrl);
         return homologUrl;
       }
-      console.log('Usando API local padrão: http://172.18.9.214:3000');
-      return 'http://172.18.9.214:3000'; // Porta corrigida para 3000
+      console.log('Usando API local padrão: http://52.91.62.219:3001');
+      return 'http://52.91.62.219:3001'; // Porta corrigida para 3000
     }
     
     // Fallback para produção
@@ -146,9 +118,6 @@ function Library() {
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
-
-  // Número máximo de jogos a exibir no carrossel antes de mostrar "Ver mais"
-  const MAX_CAROUSEL_GAMES = 8;
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
@@ -545,6 +514,19 @@ function Library() {
     <div className="app">
       <header className="header">
         <div className="search-container">
+        <div className='iupi logo'>
+        <img 
+        src={iupi} 
+        alt="iupi logo" 
+        className='iupi-logo' 
+        style={{ 
+          width: '120px', 
+          height: 'auto',
+          alignSelf: 'flex-start',
+          marginRight: '670px'  // Aumentando o espaço entre o logo e o filtro
+        }} 
+      />
+        </div>
           <button 
             className={`filter-button ${isFiltering ? 'active' : ''}`} 
             onClick={toggleFilterPopup}
@@ -637,11 +619,10 @@ function Library() {
                 <Carousel
                   title="Jogos Disponíveis"
                   onSeeMore={navigateToAllAvailableGames}
-                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-                  totalItems={availableGames.length} // Total de jogos disponíveis (ex: 10)
+                  maxItems={availableGames.length} // Agora usa todos os jogos disponíveis
+                  totalItems={availableGames.length}
                 >
-                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-                  {availableGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
+                  {availableGames.map(game => (
                     <GameCard
                       key={game.id || `available-${game.name || game.title}`}
                       image={game.image}
@@ -660,31 +641,31 @@ function Library() {
                 </Carousel>
               </div>
             )}
-
+            
             {installedGames.length > 0 && (
               <div className="carousel-section">
                 <Carousel
                   title="Jogos Instalados"
                   onSeeMore={navigateToAllInstalledGames}
-                  maxItems={MAX_CAROUSEL_GAMES} // Seu valor constante (8)
-                  totalItems={installedGames.length} // Total de jogos instalados
+                  maxItems={installedGames.length} // Agora usa todos os jogos instalados
+                  totalItems={installedGames.length}
                 >
-                  {/* Renderiza até o máximo de jogos para o carrossel (8) */}
-                  {installedGames.slice(0, MAX_CAROUSEL_GAMES).map(game => (
-                <GameCard
-                  key={game.id || `installed-${game.name || game.title}`}
-                  image={game.image}
-                  cardImage={game.cardImage}
-                  title={game.title || game.name}
-                  subject={game.subject}
-                  tags={game.tags}
-                  id={game.id}
-                  isInstalled={true}
-                  executablePath={game.executablePath}
-                  path={game.path}
-                  description={game.description}
-                  url={game.url}
-                />
+                  {/* Renderiza todos os jogos instalados */}
+                  {installedGames.map(game => (
+                    <GameCard
+                      key={game.id || `installed-${game.name || game.title}`}
+                      image={game.image}
+                      cardImage={game.cardImage}
+                      title={game.title || game.name}
+                      subject={game.subject}
+                      tags={game.tags}
+                      id={game.id}
+                      isInstalled={true}
+                      executablePath={game.executablePath}
+                      path={game.path}
+                      description={game.description}
+                      url={game.url}
+                    />
                   ))}
                 </Carousel>
               </div>

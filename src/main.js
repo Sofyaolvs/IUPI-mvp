@@ -16,15 +16,16 @@ let mainWindow;
 const imageCache = new Map();
 
 const createWindow = () => {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-      contextIsolation: true,
-      nodeIntegration: false
-    },
-  });
+   mainWindow = new BrowserWindow({
+     width: 800,
+     height: 600,
+     webPreferences: {
+       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+       contextIsolation: true,
+       nodeIntegration: false
+     },
+     autoHideMenuBar: true,
+   });
 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
@@ -33,7 +34,7 @@ const createWindow = () => {
         'Content-Security-Policy': [
           "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
           "img-src 'self' file: data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
-          "connect-src 'self' http://localhost:3000 http://172.18.9.214:3000 http://172.18.9.214:3001;"
+          `connect-src 'self' http://52.91.62.219:3001;`
         ]
       }
     });

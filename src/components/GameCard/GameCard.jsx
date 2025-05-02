@@ -50,11 +50,49 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
               console.log(`Error loading screenshot image: ${err.message}`);
             }
           }
+        } else {
+          // For non-installed games, directly use the URL
+          // Check if the image URL is valid (not null, undefined, or empty string)
+          if (cardImage && typeof cardImage === 'string' && cardImage.trim() !== '') {
+            setDisplayImage(cardImage);
+            setImageLoaded(true);
+            return;
+          } else if (image && typeof image === 'string' && image.trim() !== '') {
+            setDisplayImage(image);
+            setImageLoaded(true);
+            return;
+          }
+          
+          // If we reach here, we need to handle the case where the game has a URL but no image
+          if (url && window.electronAPI && window.electronAPI.scrapeGame) {
+            try {
+              console.log(`Fetching image for game: ${title} from ${url}`);
+              const gameData = await window.electronAPI.scrapeGame(url);
+              
+              if (!gameData.error && isMounted) {
+                // Extract the image from the scraped data
+                if (gameData.cardImage) {
+                  setDisplayImage(gameData.cardImage);
+                  setImageLoaded(true);
+                  return;
+                } else if (gameData.images && gameData.images.length > 0) {
+                  setDisplayImage(gameData.images[0]);
+                  setImageLoaded(true);
+                  return;
+                }
+              } else {
+                console.log(`Error scraping game or no images found: ${gameData.error || 'No images'}`);
+              }
+            } catch (err) {
+              console.log(`Error scraping game image: ${err.message}`);
+            }
+          }
         }
         
-        // For non-installed games or if all else fails
+        // Fallback to default image if all else fails
         if (isMounted) {
-          setDisplayImage(cardImage || image || defaultImage);
+          console.log(`Using default image for: ${title}`);
+          setDisplayImage(defaultImage);
           setImageLoaded(true);
         }
       } catch (error) {
@@ -73,7 +111,7 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
     return () => {
       isMounted = false;
     };
-  }, [isInstalled, cardImage, image, path, title]);
+  }, [isInstalled, cardImage, image, path, title, url]);
   
   // Fallback if the image fails to load
   const handleImageError = () => {
