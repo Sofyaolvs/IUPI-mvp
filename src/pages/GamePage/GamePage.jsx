@@ -333,35 +333,7 @@ export default function GamePage() {
     
     // Call the Electron API to launch the game
     window.electronAPI.openFileByPath(path, gameData.title || gameData.name)
-      .then(result => {
-        if (!result || result.error) {
-          console.error('Error launching game:', result?.error || 'Unknown error');
-          
-          // If the executable couldn't be launched and it's a zip file, 
-          // try to extract it first and then launch again
-          if (path.toLowerCase().endsWith('.zip')) {
-            console.log('Attempting to extract ZIP file before launching');
-            
-            // You would need to implement this method in your API
-            window.electronAPI.extractAndLaunchZip(path, gameData.title || gameData.name)
-              .then(extractResult => {
-                if (extractResult && extractResult.success) {
-                  console.log('ZIP extracted and game launched successfully');
-                } else {
-                  console.error('Failed to extract and launch ZIP:', extractResult?.error);
-                }
-              })
-              .catch(extractError => {
-                console.error('Error extracting ZIP:', extractError);
-              });
-          }
-        } else {
-          console.log('Game launched successfully');
-        }
-      })
-      .catch(error => {
-        console.error('Exception launching game:', error);
-      });
+
   };
 
   // Extract game tags for categories
