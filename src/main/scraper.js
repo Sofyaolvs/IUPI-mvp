@@ -8,31 +8,36 @@ async function scrapeItchGame(url) {
     console.error('Invalid itch.io URL:', url);
     return { error: 'URL inválida ou não pertence ao itch.io' };
   }
-  
+
   let browser = null;
-  
+
   try {
-    // Launch browser with necessary configurations and better error handling
-    browser = await puppeteer.launch({ 
+    // Use the bundled Chromium with Puppeteer - this works reliably with Electron
+    browser = await puppeteer.launch({
       headless: true,
       args: [
-        '--no-sandbox', 
+        '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-ipc-flooding-protection'
       ]
     });
-    
+
+    console.log(browser);
+
     const page = await browser.newPage();
-    
-    // Set viewport for better image loading
     await page.setViewport({ width: 1280, height: 800 });
-    
-    // Set user agent to appear more like a regular browser
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36');
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    );
     
     // Add additional headers to avoid being blocked
     await page.setExtraHTTPHeaders({
@@ -46,7 +51,7 @@ async function scrapeItchGame(url) {
     // Navigate to the page with extended timeout and wait for content
     await page.goto(url, { 
       waitUntil: 'networkidle2', 
-      timeout: 45000 // Extended timeout for slower connections
+      timeout: 45000
     });
     
     console.log('Page loaded, waiting for content...');
@@ -58,7 +63,7 @@ async function scrapeItchGame(url) {
       page.waitForSelector('.game_header_image img', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('.game_thumb_image img', { timeout: 5000 }).catch(() => null),
       page.waitForSelector('.thumb_link img', { timeout: 5000 }).catch(() => null),
-      new Promise(resolve => setTimeout(resolve, 5000)) // Fallback timeout
+      new Promise(resolve => setTimeout(resolve, 5000))
     ]);
     
     // Additional wait to ensure all content is loaded
@@ -92,7 +97,7 @@ async function scrapeItchGame(url) {
         document.querySelector('h1.title')?.textContent?.trim() ||
         document.querySelector('meta[property="og:title"]')?.content?.trim() ||
         document.title.replace(' by ', ' - ').split(' - ')[0]?.trim() ||
-        '';
+        'unknown-game';
       
       // Extract description with fallbacks
       const description = 
@@ -105,7 +110,7 @@ async function scrapeItchGame(url) {
       const developer = 
         document.querySelector('.developer_name')?.textContent?.trim() ||
         document.querySelector('.user_column a')?.textContent?.trim() ||
-        document.title.includes(' by ') ? document.title.split(' by ')[1]?.split(' - ')[0]?.trim() : '';
+        (document.title.includes(' by ') ? document.title.split(' by ')[1]?.split(' - ')[0]?.trim() : '');
       
       // Extract all images with improved handling
       let allImages = [];
@@ -170,15 +175,9 @@ async function scrapeItchGame(url) {
         developer,
         images: allImages,
         cardImage: allImages.length > 0 ? allImages[0] : null,
-        tags: tags.map(tag => ({ name: tag }))  // Format tags as objects with name property
+        tags: tags.map(tag => ({ name: tag }))
       };
     });
-    
-    // Take a screenshot for debugging if in development
-    if (process.env.NODE_ENV === 'development') {
-      await page.screenshot({ path: 'debug-screenshot.png' });
-      console.log('Debug screenshot saved');
-    }
     
     // Log results
     console.log('Scraping completed:', {
@@ -191,15 +190,19 @@ async function scrapeItchGame(url) {
     });
     
     return data;
-  } catch (error) {
-    console.error('Error during scraping:', error);
+
+  } catch (err) {
+    console.error("Erro ao fazer scraping:", err);
     return { 
-      error: `Erro ao fazer scraping: ${error.message}`,
+      error: `Erro ao fazer scraping: ${err.message}`,
+      title: '',
+      description: '',
+      developer: '',
       images: [],
-      cardImage: null
+      cardImage: null,
+      tags: []
     };
   } finally {
-    // Ensure browser is closed to prevent memory leaks
     if (browser) {
       try {
         await browser.close();

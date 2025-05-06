@@ -32,30 +32,161 @@ function sanitizeFileName(name) {
  * @returns {Promise<Object>} Informações do jogo
  */
 async function scrapeItchGame(url) {
-  const browser = await puppeteer.launch({ 
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  const page = await browser.newPage();
+  let browser = null;
   
-  console.log(`Acessando ${url} para obter informações do jogo...`);
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  try {
+    console.log(`Acessando ${url} para obter informações do jogo...`);
+    
+    // Configurar opções do navegador para Electron
+    const browserOptions = {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    };
+    
+    browser = await puppeteer.launch(browserOptions);
+    const page = await browser.newPage();
+    
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br'
+    });
+    
+    await page.goto(url, { 
+      waitUntil: 'networkidle2',
+      timeout: 45000 
+    });
 
-  const data = await page.evaluate(() => {
-    const title = document.querySelector('.game_title')?.textContent?.trim() || 'unknown-game';
-    const description = document.querySelector('.formatted_description')?.textContent?.trim() || '';
-    const developer = document.querySelector('.developer_name')?.textContent?.trim() || '';
-    const images = Array.from(document.querySelectorAll('.screenshot_list img')).map(img => img.src);
-    const tags = Array.from(document.querySelectorAll('.game_tags .tag'))
-      .map(tag => tag.textContent.trim())
-      .filter(tag => tag);
-      
-    return { title, description, developer, images, tags };
-  });
+    // Aguardar possíveis imagens aparecerem
+    await Promise.race([
+      page.waitForSelector('.screenshot_list img', { timeout: 5000 }).catch(() => null),
+      page.waitForSelector('.game_cover img', { timeout: 5000 }).catch(() => null),
+      page.waitForSelector('.game_header_image img', { timeout: 5000 }).catch(() => null),
+      page.waitForSelector('.game_thumb_image img', { timeout: 5000 }).catch(() => null),
+      page.waitForSelector('.thumb_link img', { timeout: 5000 }).catch(() => null),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]);
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-  await browser.close();
-  console.log(`Informações do jogo obtidas: ${data.title}`);
-  return data;
+    const data = await page.evaluate(() => {
+      const getValidUrl = (src) => {
+        if (!src) return null;
+        const cleanUrl = src.split('?')[0].trim();
+        if (cleanUrl.startsWith('http')) return cleanUrl;
+        if (cleanUrl.startsWith('//')) return 'https:' + cleanUrl;
+        if (cleanUrl.startsWith('/')) return 'https://itch.io' + cleanUrl;
+        return cleanUrl;
+      };
+
+      const title =
+        document.querySelector('.game_title')?.textContent?.trim() ||
+        document.querySelector('h1.title')?.textContent?.trim() ||
+        document.querySelector('meta[property="og:title"]')?.content?.trim() ||
+        document.title.replace(' by ', ' - ').split(' - ')[0]?.trim() || '';
+
+      const description =
+        document.querySelector('.formatted_description')?.textContent?.trim() ||
+        document.querySelector('meta[property="og:description"]')?.content?.trim() ||
+        document.querySelector('.game_text_description')?.textContent?.trim() || '';
+
+      const developer =
+        document.querySelector('.developer_name')?.textContent?.trim() ||
+        document.querySelector('.user_column a')?.textContent?.trim() ||
+        (document.title.includes(' by ') ? document.title.split(' by ')[1]?.split(' - ')[0]?.trim() : '');
+
+      let allImages = [];
+
+      // Imagem principal do Open Graph
+      const metaImage = document.querySelector('meta[property="og:image"]')?.content;
+      if (metaImage) {
+        const imgSrc = getValidUrl(metaImage);
+        if (imgSrc) allImages.push(imgSrc);
+      }
+
+      // Screenshots e thumbs
+      const screenshotListImages = Array.from(document.querySelectorAll('.screenshot_list img, .thumb_list img'));
+      screenshotListImages.forEach(img => {
+        const imgSrc = getValidUrl(img.dataset.fullscreen || img.dataset.srcOrig || img.src);
+        if (imgSrc && !allImages.includes(imgSrc)) allImages.push(imgSrc);
+      });
+
+      // Imagens de capa
+      const coverImages = Array.from(document.querySelectorAll('.game_cover img, .game_header_image img, .thumb_link img'));
+      coverImages.forEach(img => {
+        const imgSrc = getValidUrl(img.dataset.srcOrig || img.src);
+        if (imgSrc && !allImages.includes(imgSrc)) allImages.push(imgSrc);
+      });
+
+      // Fallback para outras imagens
+      if (allImages.length === 0) {
+        const extraImages = Array.from(document.querySelectorAll('.game_frame img, .screenshot img, .game_thumb_image img'));
+        extraImages.forEach(img => {
+          const imgSrc = getValidUrl(img.src);
+          if (imgSrc && !allImages.includes(imgSrc)) allImages.push(imgSrc);
+        });
+      }
+
+      // Último fallback para quaisquer imagens maiores que 100x100
+      if (allImages.length === 0) {
+        const allPageImages = Array.from(document.querySelectorAll('img'));
+        allPageImages.forEach(img => {
+          if (img.width > 100 && img.height > 100) {
+            const imgSrc = getValidUrl(img.src);
+            if (imgSrc && !allImages.includes(imgSrc) && !imgSrc.includes('avatar')) allImages.push(imgSrc);
+          }
+        });
+      }
+
+      // Tags do jogo
+      const tags = Array.from(document.querySelectorAll('.game_tags .tag, .game_info_panel_widget .tags a'))
+        .map(tag => tag.textContent.trim())
+        .filter(tag => tag);
+
+      return {
+        title,
+        description,
+        developer,
+        images: allImages,
+        cardImage: allImages.length > 0 ? allImages[0] : null,
+        tags: tags.map(tag => ({ name: tag }))
+      };
+    });
+
+    await browser.close();
+    console.log(`Informações do jogo obtidas: ${data.title}`);
+    return data;
+  } catch (error) {
+    console.error("Erro no scraping:", error.message);
+    
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error("Erro ao fechar navegador:", closeError.message);
+      }
+    }
+    
+    return { 
+      title: '',
+      description: '',
+      developer: '',
+      images: [],
+      cardImage: null,
+      tags: [],
+      error: `Erro ao obter informações do jogo: ${error.message}` 
+    };
+  }
 }
 
 /**
@@ -172,9 +303,13 @@ function findExecutableInFolder(dir, recursive = true) {
  * @param {string} gamePath Caminho da pasta do jogo
  */
 function saveGameInfo(gameInfo, gamePath) {
-  const infoPath = path.join(gamePath, 'game-info.json');
-  fs.writeFileSync(infoPath, JSON.stringify(gameInfo, null, 2));
-  console.log(`Informações do jogo salvas em: ${infoPath}`);
+  try {
+    const infoPath = path.join(gamePath, 'game-info.json');
+    fs.writeFileSync(infoPath, JSON.stringify(gameInfo, null, 2));
+    console.log(`Informações do jogo salvas em: ${infoPath}`);
+  } catch (error) {
+    console.error(`Erro ao salvar informações do jogo: ${error.message}`);
+  }
 }
 
 /**
@@ -184,35 +319,58 @@ function saveGameInfo(gameInfo, gamePath) {
  * @returns {Promise<boolean>} Status do download
  */
 async function downloadGameImages(images, gamePath) {
+  if (!images || images.length === 0) return false;
+  
   const imagesDir = path.join(gamePath, 'images');
   
   if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
   
+  let browser = null;
+  
   try {
-    const browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    // Configurar opções do navegador para Electron
+    const browserOptions = {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox'
+      ]
+    };
+    
+    browser = await puppeteer.launch(browserOptions);
     const page = await browser.newPage();
     
     console.log(`Baixando ${images.length} imagens do jogo...`);
     
     for (let i = 0; i < images.length; i++) {
       const imageUrl = images[i];
-      const viewSource = await page.goto(imageUrl);
-      const buffer = await viewSource.buffer();
-      
-      const imagePath = path.join(imagesDir, `screenshot-${i+1}.jpg`);
-      fs.writeFileSync(imagePath, buffer);
-      console.log(`Imagem ${i+1} baixada: ${path.basename(imagePath)}`);
+      try {
+        const viewSource = await page.goto(imageUrl);
+        const buffer = await viewSource.buffer();
+        
+        const imagePath = path.join(imagesDir, `screenshot-${i+1}.jpg`);
+        fs.writeFileSync(imagePath, buffer);
+        console.log(`Imagem ${i+1} baixada: ${path.basename(imagePath)}`);
+      } catch (imageError) {
+        console.error(`Erro ao baixar imagem ${i+1}: ${imageError.message}`);
+      }
     }
     
     await browser.close();
     return true;
   } catch (error) {
     console.error("Erro ao baixar imagens:", error);
+    
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error("Erro ao fechar navegador:", closeError.message);
+      }
+    }
+    
     return false;
   }
 }
@@ -414,262 +572,277 @@ async function findDownloadButtons(page) {
 }
 
 /**
- * Função principal para baixar jogos do itch.io
- * @param {string} url URL da página do jogo
- * @param {Object} options Opções de download
- * @returns {Promise<Object>} Resultado do download
- */
+* Função principal para baixar jogos do itch.io
+* @param {string} url URL da página do jogo
+* @param {Object} options Opções de download
+* @returns {Promise<Object>} Resultado do download
+*/
 async function downloadGameFromItch(url, options = {}) {
-  const { 
-    customDownloadPath = null,
-    timeout = 600000,  // 10 minutos
-    saveImages = true,
-    extractZips = true,
-    deleteZipAfterExtract = false  // Alterado para false como padrão mais seguro
-  } = options;
-  
-  try {
-    // Obter informações do jogo primeiro
-    console.log(`Iniciando processo de download para ${url}`);
-    const gameInfo = await scrapeItchGame(url);
-    const gameName = sanitizeFileName(gameInfo.title);
-    
-    // Definir pasta de download
-    const baseDownloadPath = customDownloadPath || path.join(process.cwd(), 'lib');
-    const downloadPath = path.join(baseDownloadPath, gameName);
-    
-    console.log(`Pasta de destino: ${downloadPath}`);
-    
-    if(downloadPath.includes('unknown-game')){
-      return {
-        success: false,
-        installed: false,
-        message: 'Download cancelado! (unknown-game)',
-      }
-    }
-    
-    // Verificar se o jogo já está instalado
-    const gameStatus = isGameInstalled(gameName, baseDownloadPath);
-    if (gameStatus.installed) {
-      console.log(`O jogo "${gameName}" já está instalado em: ${gameStatus.executablePath}`);
-      return {
-        success: true,
-        installed: true,
-        message: 'O jogo já está instalado!',
-        executablePath: gameStatus.executablePath,
-        gamePath: gameStatus.gamePath,
-        gameInfo: gameInfo
-      };
-    }
-    
-    // Iniciar download do jogo
-    const browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: null
-    });
-    
-    const page = await browser.newPage();
-    
-    // Definir onde os arquivos serão baixados
-    const client = await page.createCDPSession();
-    await client.send('Page.setDownloadBehavior', {
-      behavior: 'allow',
-      downloadPath,
-    });
-    
-    // Navegar para a página do jogo
-    console.log(`Navegando para ${url}`);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });    
-    await page.waitForSelector('a.button.download_btn', { timeout: 60000 });
-    await page.click('a.button.download_btn');
-    
-    // Criar a pasta se não existir
-    if (!fs.existsSync(downloadPath)) {
-      fs.mkdirSync(downloadPath, { recursive: true });
-    }
-    
-    // Esperar download iniciar
-    console.log('Aguardando início do download...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    // Esperar até que não haja mais arquivos .crdownload ou .part
-    let downloadComplete = !checkOngoingDownloads(downloadPath);
-    let checkCount = 0;
-    const maxChecks = timeout / 10000; // Converter timeout para número de checagens
-    
-    console.log(`Monitorando download (timeout: ${timeout / 60000} minutos)`);
-    while (!downloadComplete && checkCount < maxChecks) {
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 10 segundos
-      downloadComplete = !checkOngoingDownloads(downloadPath);
-      checkCount++;
-      if (checkCount % 6 === 0) { // Log a cada minuto
-        console.log(`Download em andamento... ${checkCount * 10 / 60} minutos passados`);
-      }
-    }
-    
-    if (!downloadComplete) {
-      console.warn('Tempo limite excedido, mas o download pode continuar em segundo plano');
-    } else {
-      console.log("Download concluído!");
-    }
-    
-    await browser.close();
-    
-    // Obter os arquivos mais recentes no diretório
-    const recentFiles = getRecentFiles(downloadPath);
-    console.log(`Arquivos encontrados após download: ${recentFiles.map(f => f.filePath).join(', ')}`);
-    
-    // Verificar se há arquivos .zip para extrair
-    if (extractZips) {
-      let extractedFolders = [];
-      
-      for (const fileInfo of recentFiles) {
-        if (fileInfo.filePath.toLowerCase().endsWith('.zip')) {
-          console.log(`Preparando para extrair: ${fileInfo.filePath}`);
-          
-          try {
-            // Criar uma pasta específica para extração baseada no nome do arquivo zip
-            const zipFileName = path.basename(fileInfo.filePath, '.zip');
-            const extractFolder = path.join(downloadPath, `${zipFileName}_extracted`);
-            
-            // Criar a pasta de extração se não existir
-            if (!fs.existsSync(extractFolder)) {
-              fs.mkdirSync(extractFolder, { recursive: true });
-            }
-            
-            console.log(`Extraindo ${fileInfo.filePath} para ${extractFolder}`);
-            
-            await extractZipFile(fileInfo.filePath, extractFolder);
-            extractedFolders.push(extractFolder);
-            
-            console.log(`Extração de ${fileInfo.filePath} concluída com sucesso!`);
-            
-            if (deleteZipAfterExtract) {
-              try {
-                fs.unlinkSync(fileInfo.filePath);
-                console.log(`Arquivo ZIP removido após extração: ${fileInfo.filePath}`);
-              } catch (unlinkError) {
-                console.error(`Erro ao remover arquivo ZIP: ${unlinkError.message}`);
-              }
-            }
-          } catch (extractError) {
-            console.error(`Erro ao extrair ${fileInfo.filePath}: ${extractError.message}`);
-          }
-        }
-      }
-      
-      // Registrar todas as pastas extraídas
-      if (extractedFolders.length > 0) {
-        console.log(`Pastas com arquivos extraídos: ${extractedFolders.join(', ')}`);
-      }
-    }
-    
-    // Salvar informações do jogo após download e extração
-    saveGameInfo(gameInfo, downloadPath);
-    
-    // Baixar imagens do jogo após download e extração
-    if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
-      await downloadGameImages(gameInfo.images, downloadPath);
-    }
-    
-    // ALTERAÇÃO IMPORTANTE: Encontrar executável na pasta do jogo com busca recursiva aprimorada
-    const executablePath = findExecutableInFolder(downloadPath, true); // true para busca recursiva
-    
-    if (executablePath) {
-      console.log(`Executável encontrado: ${executablePath}`);
-    } else {
-      console.log('Nenhum executável encontrado na pasta do jogo');
-    }
-    
-    console.log("Processo de download finalizado");
-    
-    return {
-      success: true,
-      installed: true,
-      message: 'Download concluído com sucesso!',
-      gamePath: downloadPath,
-      files: recentFiles.map(f => f.filePath),
-      executablePath: executablePath,
-      gameInfo: gameInfo
-    };
-  } catch (error) {
-    console.error('Erro no download:', error);
-    
-    return {
-      success: false,
-      installed: false,
-      message: `Erro no download: ${error.message}`,
-      error: error
-    };
-  }
+ const { 
+   customDownloadPath = null,
+   timeout = 600000,  // 10 minutos
+   saveImages = true,
+   extractZips = true,
+   deleteZipAfterExtract = false  // Alterado para false como padrão mais seguro
+ } = options;
+ 
+ let browser = null;
+ 
+ try {
+   // Obter informações do jogo primeiro
+   console.log(`Iniciando processo de download para ${url}`);
+   const gameInfo = await scrapeItchGame(url);
+   const gameName = sanitizeFileName(gameInfo.title);
+   
+   // Definir pasta de download
+   const baseDownloadPath = customDownloadPath || path.join(process.cwd(), 'lib');
+   const downloadPath = path.join(baseDownloadPath, gameName);
+   
+   console.log(`Pasta de destino: ${downloadPath}`);
+   
+   if(downloadPath.includes('unknown-game')){
+     return {
+       success: false,
+       installed: false,
+       message: 'Download cancelado! (unknown-game)',
+     }
+   }
+   
+   // Verificar se o jogo já está instalado
+   const gameStatus = isGameInstalled(gameName, baseDownloadPath);
+   if (gameStatus.installed) {
+     console.log(`O jogo "${gameName}" já está instalado em: ${gameStatus.executablePath}`);
+     return {
+       success: true,
+       installed: true,
+       message: 'O jogo já está instalado!',
+       executablePath: gameStatus.executablePath,
+       gamePath: gameStatus.gamePath,
+       gameInfo: gameInfo
+     };
+   }
+   
+   // Iniciar download do jogo
+   // Configurar opções do navegador para Electron
+   const browserOptions = {
+     headless: true,
+     args: ['--no-sandbox', '--disable-setuid-sandbox'],
+     defaultViewport: null
+   };
+   
+   browser = await puppeteer.launch(browserOptions);
+   
+   const page = await browser.newPage();
+   
+   // Definir onde os arquivos serão baixados
+   const client = await page.createCDPSession();
+   await client.send('Page.setDownloadBehavior', {
+     behavior: 'allow',
+     downloadPath,
+   });
+   
+   // Navegar para a página do jogo
+   console.log(`Navegando para ${url}`);
+   await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });    
+   await page.waitForSelector('a.button.download_btn', { timeout: 60000 });
+   await page.click('a.button.download_btn');
+   
+   // Criar a pasta se não existir
+   if (!fs.existsSync(downloadPath)) {
+     fs.mkdirSync(downloadPath, { recursive: true });
+   }
+   
+   // Esperar download iniciar
+   console.log('Aguardando início do download...');
+   await new Promise(resolve => setTimeout(resolve, 5000));
+   
+   // Esperar até que não haja mais arquivos .crdownload ou .part
+   let downloadComplete = !checkOngoingDownloads(downloadPath);
+   let checkCount = 0;
+   const maxChecks = timeout / 10000; // Converter timeout para número de checagens
+   
+   console.log(`Monitorando download (timeout: ${timeout / 60000} minutos)`);
+   while (!downloadComplete && checkCount < maxChecks) {
+     await new Promise(resolve => setTimeout(resolve, 10000)); // Esperar 10 segundos
+     downloadComplete = !checkOngoingDownloads(downloadPath);
+     checkCount++;
+     if (checkCount % 6 === 0) { // Log a cada minuto
+       console.log(`Download em andamento... ${checkCount * 10 / 60} minutos passados`);
+     }
+   }
+   
+   if (!downloadComplete) {
+     console.warn('Tempo limite excedido, mas o download pode continuar em segundo plano');
+   } else {
+     console.log("Download concluído!");
+   }
+   
+   await browser.close();
+   browser = null;
+   
+   // Obter os arquivos mais recentes no diretório
+   const recentFiles = getRecentFiles(downloadPath);
+   console.log(`Arquivos encontrados após download: ${recentFiles.map(f => f.filePath).join(', ')}`);
+   
+   // Verificar se há arquivos .zip para extrair
+   if (extractZips) {
+     let extractedFolders = [];
+     
+     for (const fileInfo of recentFiles) {
+       if (fileInfo.filePath.toLowerCase().endsWith('.zip')) {
+         console.log(`Preparando para extrair: ${fileInfo.filePath}`);
+         
+         try {
+           // Criar uma pasta específica para extração baseada no nome do arquivo zip
+           const zipFileName = path.basename(fileInfo.filePath, '.zip');
+           const extractFolder = path.join(downloadPath, `${zipFileName}_extracted`);
+           
+           // Criar a pasta de extração se não existir
+           if (!fs.existsSync(extractFolder)) {
+             fs.mkdirSync(extractFolder, { recursive: true });
+           }
+           
+           console.log(`Extraindo ${fileInfo.filePath} para ${extractFolder}`);
+           
+           await extractZipFile(fileInfo.filePath, extractFolder);
+           extractedFolders.push(extractFolder);
+           
+           console.log(`Extração de ${fileInfo.filePath} concluída com sucesso!`);
+           
+           if (deleteZipAfterExtract) {
+             try {
+               fs.unlinkSync(fileInfo.filePath);
+               console.log(`Arquivo ZIP removido após extração: ${fileInfo.filePath}`);
+             } catch (unlinkError) {
+               console.error(`Erro ao remover arquivo ZIP: ${unlinkError.message}`);
+             }
+           }
+         } catch (extractError) {
+           console.error(`Erro ao extrair ${fileInfo.filePath}: ${extractError.message}`);
+         }
+       }
+     }
+     
+     // Registrar todas as pastas extraídas
+     if (extractedFolders.length > 0) {
+       console.log(`Pastas com arquivos extraídos: ${extractedFolders.join(', ')}`);
+     }
+   }
+   
+   // Salvar informações do jogo após download e extração
+   saveGameInfo(gameInfo, downloadPath);
+   
+   // Baixar imagens do jogo após download e extração
+   if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
+     await downloadGameImages(gameInfo.images, downloadPath);
+   }
+   
+   // Encontrar executável na pasta do jogo com busca recursiva aprimorada
+   const executablePath = findExecutableInFolder(downloadPath, true); // true para busca recursiva
+   
+   if (executablePath) {
+     console.log(`Executável encontrado: ${executablePath}`);
+   } else {
+     console.log('Nenhum executável encontrado na pasta do jogo');
+   }
+   
+   console.log("Processo de download finalizado");
+   
+   return {
+     success: true,
+     installed: true,
+     message: 'Download concluído com sucesso!',
+     gamePath: downloadPath,
+     files: recentFiles.map(f => f.filePath),
+     executablePath: executablePath,
+     gameInfo: gameInfo
+   };
+ } catch (error) {
+   console.error('Erro no download:', error);
+   
+   // Garantir que o navegador seja fechado em caso de erro
+   if (browser) {
+     try {
+       await browser.close();
+     } catch (closeError) {
+       console.error('Erro ao fechar navegador:', closeError.message);
+     }
+   }
+   
+   return {
+     success: false,
+     installed: false,
+     message: `Erro no download: ${error.message}`,
+     error: error
+   };
+ }
 }
 
 /**
- * Inicia o jogo a partir de seu executável
- * @param {string} filePath Caminho do executável
- * @returns {Promise<Object>} Resultado da execução
- */
+* Inicia o jogo a partir de seu executável
+* @param {string} filePath Caminho do executável
+* @returns {Promise<Object>} Resultado da execução
+*/
 function launchGame(filePath) {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(filePath)) {
-      reject(new Error(`O arquivo não existe: ${filePath}`));
-      return;
-    }
-    
-    console.log(`Executando jogo: ${filePath}`);
-    
-    exec(`"${filePath}"`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Erro ao executar o jogo: ${error.message}`);
-        reject(error);
-        return;
-      }
-      
-      resolve({
-        success: true,
-        message: 'Jogo iniciado com sucesso!',
-        output: stdout
-      });
-    });
-  });
+ return new Promise((resolve, reject) => {
+   if (!fs.existsSync(filePath)) {
+     reject(new Error(`O arquivo não existe: ${filePath}`));
+     return;
+   }
+   
+   console.log(`Executando jogo: ${filePath}`);
+   
+   exec(`"${filePath}"`, (error, stdout, stderr) => {
+     if (error) {
+       console.error(`Erro ao executar o jogo: ${error.message}`);
+       reject(error);
+       return;
+     }
+     
+     resolve({
+       success: true,
+       message: 'Jogo iniciado com sucesso!',
+       output: stdout
+     });
+   });
+ });
 }
 
 /**
- * Verifica o status de instalação de um jogo
- * @param {string} gameUrl URL da página do jogo
- * @param {string} baseDir Diretório base para verificação
- * @returns {Promise<Object>} Status do jogo
- */
+* Verifica o status de instalação de um jogo
+* @param {string} gameUrl URL da página do jogo
+* @param {string} baseDir Diretório base para verificação
+* @returns {Promise<Object>} Status do jogo
+*/
 async function checkGameStatus(gameUrl, baseDir = null) {
-  try {
-    const gameInfo = await scrapeItchGame(gameUrl);
-    const gameName = sanitizeFileName(gameInfo.title);
-    
-    const gameStatus = isGameInstalled(gameName, baseDir);
-    
-    return {
-      gameInfo,
-      installed: gameStatus.installed,
-      executablePath: gameStatus.executablePath,
-      gamePath: gameStatus.gamePath
-    };
-  } catch (error) {
-    console.error("Erro ao verificar status do jogo:", error);
-    return {
-      installed: false,
-      executablePath: null,
-      error: error.message
-    };
-  }
+ try {
+   const gameInfo = await scrapeItchGame(gameUrl);
+   const gameName = sanitizeFileName(gameInfo.title);
+   
+   const gameStatus = isGameInstalled(gameName, baseDir);
+   
+   return {
+     gameInfo,
+     installed: gameStatus.installed,
+     executablePath: gameStatus.executablePath,
+     gamePath: gameStatus.gamePath
+   };
+ } catch (error) {
+   console.error("Erro ao verificar status do jogo:", error);
+   return {
+     installed: false,
+     executablePath: null,
+     error: error.message
+   };
+ }
 }
 
 module.exports = { 
-  downloadGameFromItch, 
-  scrapeItchGame, 
-  isGameInstalled, 
-  launchGame, 
-  checkGameStatus,
-  findExecutableInFolder,
-  sanitizeFileName
+ downloadGameFromItch, 
+ scrapeItchGame, 
+ isGameInstalled, 
+ launchGame, 
+ checkGameStatus,
+ findExecutableInFolder,
+ sanitizeFileName
 };

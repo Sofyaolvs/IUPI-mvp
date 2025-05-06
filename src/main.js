@@ -247,14 +247,49 @@ ipcMain.handle('check-installed-games', async () => {
       }
       gameInfo.image = image;
       
-      // Find executable file
+      // Find executable file - prioritize extracted versions
       let executablePath = null;
       try {
         const files = fs.readdirSync(gamePath);
-        const exeFile = files.find(file => file.toLowerCase().endsWith('.exe'));
-        if (exeFile) {
-          executablePath = path.join(gamePath, exeFile);
+        
+        // First look for extracted folders
+        const extractedFolders = files.filter(file => {
+          const fullPath = path.join(gamePath, file);
+          return fs.statSync(fullPath).isDirectory() && file.includes('_extracted');
+        });
+        
+        // If there are extracted folders, look for executables in them
+        if (extractedFolders.length > 0) {
+          console.log(`Checking extracted folders for ${gameFolderName}:`, extractedFolders);
+          
+          for (const extractedFolder of extractedFolders) {
+            const extractedPath = path.join(gamePath, extractedFolder);
+            const executableInExtracted = findExecutableInExtractedFolder(extractedPath);
+            if (executableInExtracted) {
+              console.log(`Found executable in extracted folder: ${executableInExtracted}`);
+              executablePath = executableInExtracted;
+              break;
+            }
+          }
         }
+        
+        // If no executable found in extracted folders, look for .exe in main folder
+        if (!executablePath) {
+          const exeFile = files.find(file => file.toLowerCase().endsWith('.exe'));
+          if (exeFile) {
+            executablePath = path.join(gamePath, exeFile);
+          }
+        }
+        
+        // If still no executable, look for .zip file as fallback (will be handled by open-file-by-path)
+        if (!executablePath) {
+          const zipFile = files.find(file => file.toLowerCase().endsWith('.zip'));
+          if (zipFile) {
+            executablePath = path.join(gamePath, zipFile);
+            console.log(`Using ZIP file as executable for ${gameFolderName}: ${executablePath}`);
+          }
+        }
+        
       } catch (err) {
         console.error(`Error finding executable for ${gameFolderName}:`, err);
       }
@@ -282,6 +317,38 @@ ipcMain.handle('check-installed-games', async () => {
     return [];
   }
 });
+
+// Helper function to find executable in extracted folder
+function findExecutableInExtractedFolder(extractedPath) {
+  if (!fs.existsSync(extractedPath)) return null;
+  
+  try {
+    console.log(`Searching for executable in: ${extractedPath}`);
+    const files = fs.readdirSync(extractedPath, { withFileTypes: true });
+    
+    // Look for .exe files
+    for (const file of files) {
+      if (file.isFile() && file.name.toLowerCase().endsWith('.exe')) {
+        const exePath = path.join(extractedPath, file.name);
+        console.log(`Found executable: ${exePath}`);
+        return exePath;
+      }
+    }
+    
+    // If not found, search recursively in subdirectories
+    for (const file of files) {
+      if (file.isDirectory()) {
+        const result = findExecutableInExtractedFolder(path.join(extractedPath, file.name));
+        if (result) return result;
+      }
+    }
+    
+    return null;
+  } catch (err) {
+    console.error(`Error searching in ${extractedPath}:`, err);
+    return null;
+  }
+}
 
 function checkInstalledGames(){
   const libDir = path.resolve(process.cwd(), 'lib');
@@ -420,20 +487,111 @@ const normalizeName = (name) => {
 };
 
 // Abrir arquivo pelo caminho
-ipcMain.handle('open-file-by-path', (event, filePath) => {
-  console.log('Solicitação para abrir arquivo:', filePath);
+ipcMain.handle('open-file-by-path', async (event, filePath, gameName) => {
+  console.log('Solicitação para abrir arquivo:', filePath, 'Game:', gameName);
   
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     if (!filePath) {
       resolve({ error: 'Caminho do arquivo não fornecido' });
       return;
     }
     
+    // Se o caminho fornecido é um arquivo ZIP, procurar o executável extraído
+    if (filePath.toLowerCase().endsWith('.zip')) {
+      console.log('Arquivo ZIP detectado. Procurando versão extraída...');
+      
+      const gameDir = path.dirname(filePath); // Pasta do jogo
+      const zipFileName = path.basename(filePath, '.zip'); // Nome sem extensão
+      const extractedFolder = path.join(gameDir, `${zipFileName}_extracted`);
+      
+      console.log('Procurando pasta extraída em:', extractedFolder);
+      
+      if (fs.existsSync(extractedFolder)) {
+        // Procurar o executável na pasta extraída
+        const findExecutableInExtracted = (dir) => {
+          if (!fs.existsSync(dir)) return null;
+          
+          try {
+            console.log('Procurando executável em:', dir);
+            const files = fs.readdirSync(dir, { withFileTypes: true });
+            
+            // Primeiro, procurar arquivos .exe
+            for (const file of files) {
+              if (file.isFile() && file.name.toLowerCase().endsWith('.exe')) {
+                const exePath = path.join(dir, file.name);
+                console.log('Executável encontrado:', exePath);
+                return exePath;
+              }
+            }
+            
+            // Se não encontrou, procurar em subpastas
+            for (const file of files) {
+              if (file.isDirectory()) {
+                const result = findExecutableInExtracted(path.join(dir, file.name));
+                if (result) return result;
+              }
+            }
+            
+            return null;
+          } catch (err) {
+            console.error('Erro ao procurar executável:', err);
+            return null;
+          }
+        };
+        
+        const executablePath = findExecutableInExtracted(extractedFolder);
+        
+        if (executablePath) {
+          // Executar o .exe encontrado
+          console.log('Executando jogo extraído:', executablePath);
+          
+          // Criar arquivo userData.txt se necessário
+          try {
+            const txtPath = path.join(path.dirname(executablePath), 'userData.txt');
+            if (!fs.existsSync(txtPath)) {
+              fs.writeFileSync(txtPath, 'user1', 'utf8');
+              console.log('Arquivo userData.txt criado');
+            }
+          } catch (txtError) {
+            console.warn('Erro ao criar userData.txt:', txtError);
+          }
+          
+          // Executar o jogo
+          execFile(executablePath, (error, stdout, stderr) => {
+            if (error) {
+              console.error('Erro ao executar jogo:', error);
+              resolve({ error: `Erro ao executar: ${error.message}` });
+              return;
+            }
+            
+            console.log('Jogo iniciado com sucesso');
+            resolve({ 
+              success: true, 
+              output: stdout || 'Jogo iniciado com sucesso!',
+              executablePath: executablePath
+            });
+          });
+          
+          return; // Sair da função aqui para não continuar
+        } else {
+          console.error('Executável não encontrado na pasta extraída');
+          resolve({ error: 'Executável não encontrado na pasta extraída' });
+          return;
+        }
+      } else {
+        console.error('Pasta extraída não encontrada:', extractedFolder);
+        resolve({ error: 'Arquivo ainda não foi extraído. Tente extrair novamente.' });
+        return;
+      }
+    }
+    
+    // Se não for um ZIP, executar diretamente (comportamento original)
     if (!fs.existsSync(filePath)) {
       resolve({ error: 'Arquivo não encontrado: ' + filePath });
       return;
     }
     
+    console.log('Executando arquivo diretamente:', filePath);
     execFile(filePath, (error, stdout, stderr) => {
       if (error) {
         console.error('Erro ao abrir arquivo:', error);
