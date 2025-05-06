@@ -155,19 +155,7 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
     }
   };
 
-  const getButtonIcon = () => {
-    switch (downloadState) {
-      case 'downloading':
-      case 'extracting':
-        return <Loader className="icon spinning" />;
-      case 'completed':
-        return <Play className="icon" />;
-      case 'error':
-        return <AlertTriangle className="icon" />;
-      default:
-        return <Download className="icon" />;
-    }
-  };
+ 
 
   const buttonAction = () => {
     if (downloadState === 'completed') {
@@ -195,7 +183,6 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
         disabled={downloadState === 'downloading' || downloadState === 'extracting'}
         className={getButtonClass()}
       >
-        {getButtonIcon()}
         {getButtonText()}
       </button>
 
