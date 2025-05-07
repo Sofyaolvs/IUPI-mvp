@@ -17,18 +17,23 @@ import '../../components/Subjects/Subject.css';
 import '../../components/Filter/FilterButton.css';
 
 // Importação de imagens
-import tigrinho from '../../assets/tigrinho.svg';
-import Telahorizontal from '../../assets/Telahorizontal.svg';
 import iupi from '../../assets/iupi.png'
+import lacos_da_amizade from '../../assets/lacos_da_amizade.png'
+import floresta_das_emocoes from '../../assets/floresta_das_emocoes.png'
+import aventuras_do_reino_antigo from '../../assets/aventuras_do_reino_antigo.png'
+import fortal_run from '../../assets/fortal_run.png'
+import joy_defenders from '../../assets/joy_defenders.png'
+import lacos_da_amizade2 from '../../assets/lacos_da_amizade2.png'
+
 
 // Dados das categorias
 const subjectsData = [
-  { id: 1, title: 'Português', image: Telahorizontal },
-  { id: 2, title: 'Matemática', image: tigrinho },
-  { id: 3, title: 'História', image: tigrinho },
-  { id: 4, title: 'Geografia', image: tigrinho },
-  { id: 5, title: 'Ciências', image: tigrinho },
-  { id: 6, title: 'Arte', image: tigrinho },
+  { id: 1, title: 'Português', image: lacos_da_amizade },
+  { id: 2, title: 'Matemática', image: floresta_das_emocoes },
+  { id: 3, title: 'História', image: aventuras_do_reino_antigo },
+  { id: 4, title: 'Geografia', image: fortal_run },
+  { id: 5, title: 'Ciências', image: joy_defenders },
+  { id: 6, title: 'Arte', image: lacos_da_amizade2 },
 ];
 
 function Library() {
@@ -602,7 +607,7 @@ function Library() {
         {error && <p className="error-message">{error}</p>}
 
         {isLoading ? (
-          <Loader message="Carregando jogos" />
+          <Loader/>
         ) : (
           <>
            {availableGames.length > 0 && (
