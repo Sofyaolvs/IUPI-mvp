@@ -15,9 +15,11 @@ export default function GamePage() {
   const [gameData, setGameData] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [executablePath, setExecutablePath] = useState(null);
+  const [currentGroup, setCurrentGroup] = useState(0);
   
   const navigate = useNavigate();
   const { id } = useParams();
+  const SLIDES_PER_GROUP = 3;
 
   useEffect(() => {
     const loadGameData = async () => {
@@ -275,15 +277,81 @@ export default function GamePage() {
   };
 
   const nextSlide = () => {
-    if (gameData?.images?.length > 0) {
-      setCurrentSlide((prev) => (prev === gameData.images.length - 1 ? 0 : prev + 1));
+    if (!gameData?.images?.length) return;
+    
+    const nextIndex = currentSlide + 1;
+    
+    // Se atingiu o final das imagens, volte para o início
+    if (nextIndex >= gameData.images.length) {
+      setCurrentSlide(0);
+      setCurrentGroup(0);
+      return;
+    }
+    
+    setCurrentSlide(nextIndex);
+    
+    // Calcula o grupo correspondente ao novo slide
+    const newGroup = Math.floor(nextIndex / SLIDES_PER_GROUP);
+    if (newGroup !== currentGroup) {
+      setCurrentGroup(newGroup);
     }
   };
 
   const prevSlide = () => {
-    if (gameData?.images?.length > 0) {
-      setCurrentSlide((prev) => (prev === 0 ? gameData.images.length - 1 : prev - 1));
+    if (!gameData?.images?.length) return;
+    
+    const prevIndex = currentSlide - 1;
+    
+    // Se está no início, vá para o final
+    if (prevIndex < 0) {
+      const lastIndex = gameData.images.length - 1;
+      setCurrentSlide(lastIndex);
+      setCurrentGroup(Math.floor(lastIndex / SLIDES_PER_GROUP));
+      return;
     }
+    
+    setCurrentSlide(prevIndex);
+    
+    // Calcula o grupo correspondente ao novo slide
+    const newGroup = Math.floor(prevIndex / SLIDES_PER_GROUP);
+    if (newGroup !== currentGroup) {
+      setCurrentGroup(newGroup);
+    }
+  };
+
+  const nextGroup = () => {
+    if (!gameData?.images?.length) return;
+    
+    const totalGroups = Math.ceil(gameData.images.length / SLIDES_PER_GROUP);
+    const newGroup = currentGroup === totalGroups - 1 ? 0 : currentGroup + 1;
+    setCurrentGroup(newGroup);
+    
+    // Atualiza a imagem principal para a primeira imagem do novo grupo
+    const newSlideIndex = newGroup * SLIDES_PER_GROUP;
+    if (newSlideIndex < gameData.images.length) {
+      setCurrentSlide(newSlideIndex);
+    }
+  };
+
+  const prevGroup = () => {
+    if (!gameData?.images?.length) return;
+    
+    const totalGroups = Math.ceil(gameData.images.length / SLIDES_PER_GROUP);
+    const newGroup = currentGroup === 0 ? totalGroups - 1 : currentGroup - 1;
+    setCurrentGroup(newGroup);
+    
+    // Atualiza a imagem principal para a primeira imagem do novo grupo
+    const newSlideIndex = newGroup * SLIDES_PER_GROUP;
+    if (newSlideIndex < gameData.images.length) {
+      setCurrentSlide(newSlideIndex);
+    }
+  };
+
+  const getCurrentGroupImages = () => {
+    if (!gameData?.images?.length) return [];
+    
+    const startIndex = currentGroup * SLIDES_PER_GROUP;
+    return gameData.images.slice(startIndex, startIndex + SLIDES_PER_GROUP);
   };
 
   const handleBackClick = () => {
@@ -382,6 +450,10 @@ export default function GamePage() {
 
   const gameTags = getGameTags();
   const gameName = getGameName();
+  // Get current group images for the carousel
+  const currentGroupImages = getCurrentGroupImages();
+  // Check if we're viewing from installed games list
+  const isViewingInstalledGame = id.startsWith('installed-');
 
   return (
     <div className='game-infor'>
@@ -391,16 +463,18 @@ export default function GamePage() {
         </button>
       </div>
 
-      {/* Categories / Tags */}
-      <div className="categories">
-        {gameTags.length > 0 ? (
-          gameTags.map((tag, index) => (
-            <button key={index} className="category-button">{tag}</button>
-          ))
-        ) : (
-          <button className="category-button">Sem categoria</button>
-        )}
-      </div>
+      {/* Categories / Tags - Only show if not viewing from installed games */}
+      {!isViewingInstalledGame && (
+        <div className="categories">
+          {gameTags.length > 0 ? (
+            gameTags.map((tag, index) => (
+              <button key={index} className="category-button">{tag}</button>
+            ))
+          ) : (
+            <button className="category-button">Sem categoria</button>
+          )}
+        </div>
+      )}
 
       {/* Main content */}
       <div className="content-wrapper">
@@ -433,18 +507,22 @@ export default function GamePage() {
               </button>
 
               <div className="carousel-slides">
-                {gameData.images.map((slide, index) => (
-                  <div 
-                    key={index} 
-                    className={`carousel-slide ${currentSlide === index ? 'active' : 'inactive'}`}
-                  >
-                    <img 
-                      src={slide} 
-                      alt={`${gameData.title || 'Jogo'} preview`}
-                      onError={handleImageError}
-                    />
-                  </div>
-                ))}
+              {currentGroupImages.map((slide, index) => {
+                  const actualIndex = currentGroup * SLIDES_PER_GROUP + index;
+                  return (
+                    <div 
+                      key={actualIndex} 
+                      className={`carousel-slide ${currentSlide === actualIndex ? 'active' : 'inactive'}`}
+                      onClick={() => setCurrentSlide(actualIndex)}
+                    >
+                      <img 
+                        src={slide} 
+                        alt={`${gameData.title || 'Jogo'} preview ${actualIndex + 1}`}
+                        onError={handleImageError}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               <button onClick={nextSlide} className="carousel-button">
@@ -476,7 +554,7 @@ export default function GamePage() {
                 console.log('Download completed with data:', game);
                 setIsInstalled(true);
                 
-                // Garantir que temos o caminho do executável e que ele existe
+               
                 if (game && game.executablePath) {
                   console.log(`Executável encontrado: ${game.executablePath}`);
                   setExecutablePath(game.executablePath);
@@ -488,10 +566,12 @@ export default function GamePage() {
           )}
         </div>
       </div>
-        <div>
-          <RecommendedGames currentGame={gameData} />
-        </div>
-      {/* Jogos recomendados */}
+        {/* Jogos recomendados  */}
+        {!isViewingInstalledGame && (
+          <div>
+            <RecommendedGames currentGame={gameData} />
+          </div>
+        )}
     </div>
   );
 }

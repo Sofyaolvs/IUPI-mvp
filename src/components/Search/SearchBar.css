@@ -19,13 +19,15 @@
   width: 100%;
   padding: 0 40px 0 24px;
   height: 46px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
+  border: 1px solid #dddddd00;
+  border-radius: 16px;
   font-size: 16px;
   color: #090B81;
   outline: none;
   background-color: #ECF1F5;
   box-sizing: border-box;
+  box-shadow: 0 2px 2px 1px rgba(0, 0, 0, 0.15);
+
 }
 
 .search-bar input:focus {

@@ -23,6 +23,7 @@
 }
         
 .letra {
+  font-family: 'Cherry Bomb One', cursive; /* Adicionada a fonte Cherry Bomb One */
   background-color: #E99428;
   border-radius: 50% !important;
   -webkit-text-stroke-width: 2px;
@@ -32,6 +33,7 @@
   width: 100%;
   height: 100%;
   display: flex;
+  font-weight: 900 !important;
   justify-content: center;
   align-items: center;
   margin-bottom: 15px;

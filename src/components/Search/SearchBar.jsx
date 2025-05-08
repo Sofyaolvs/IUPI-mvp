@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import './SearchBar.css';
 
-const SearchBar = ({ onSearch, placeholder = "Buscar jogos...", debounceTime = 300, initialValue = '' }) => {
+const SearchBar = ({ onSearch, placeholder = "Buscar jogos", debounceTime = 300, initialValue = '' }) => {
   const [searchTerm, setSearchTerm] = useState(initialValue);
   const [isTyping, setIsTyping] = useState(false);
   const timerRef = useRef(null);
