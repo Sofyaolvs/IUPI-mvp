@@ -133,7 +133,7 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
         title: title,
         name: title,
         image: displayImage,
-        images: [displayImage], // Put the main image in an array for the carousel
+        images: [displayImage], 
         description: description || '',
         tags: tags || [],
         subject: subject || '',
@@ -166,7 +166,7 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
           />
         )}
       </div>
-      <p className="game-title">{title || 'Jogo sem título'}</p>
+      <p className="game-title-card">{title || 'Jogo sem título'}</p>
     </div>
   );
 };
