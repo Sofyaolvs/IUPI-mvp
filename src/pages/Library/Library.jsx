@@ -8,7 +8,7 @@ import FilterButton from '../../components/Filter/FilterButton.jsx';
 import Loader from '../../components/Loader/Loader.jsx'; 
 import { fetchGames, searchGames } from '../../services/api.jsx';
 
-// Importação de estilos
+// Import styles
 import '../../index.css';
 import './Library.css';
 import '../../components/Carousel/Carousel.css';
@@ -16,7 +16,7 @@ import '../../components/GameCard/GameCard.css';
 import '../../components/Subjects/Subject.css';
 import '../../components/Filter/FilterButton.css';
 
-// Importação de imagens
+// Import images
 import iupi from '../../assets/iupi.png'
 import lacos_da_amizade from '../../assets/lacos_da_amizade.png'
 import floresta_das_emocoes from '../../assets/floresta_das_emocoes.png'
@@ -25,8 +25,7 @@ import fortal_run from '../../assets/fortal_run.png'
 import joy_defenders from '../../assets/joy_defenders.png'
 import lacos_da_amizade2 from '../../assets/lacos_da_amizade2.png'
 
-
-// Dados das categorias
+// Category data
 const subjectsData = [
   { id: 1, title: 'Português', image: lacos_da_amizade },
   { id: 2, title: 'Matemática', image: floresta_das_emocoes },
@@ -51,64 +50,64 @@ function Library() {
   const [lastSearchTerm, setLastSearchTerm] = useState('');
   const [isFiltering, setIsFiltering] = useState(false);
   
-  // Add new states for tracking rapid clicks and showing the debug popup
+  // Add states for tracking rapid clicks and showing the debug popup
   const [filterClickCount, setFilterClickCount] = useState(0);
   const [showDebugPopup, setShowDebugPopup] = useState(false);
   const clickTimerRef = useRef(null);
   
-  // Inicializar valores do localStorage, se existirem
+  // Initialize localStorage values if they exist
   useEffect(() => {
-    // Carregar valor da URL de homologação do localStorage
+    // Load homolog URL from localStorage
     const savedHomologUrl = localStorage.getItem('HOMOLOG_API_URL');
     if (savedHomologUrl) {
       window.HOMOLOG_API_URL = savedHomologUrl;
-      console.log('URL de homologação carregada do localStorage:', savedHomologUrl);
+      console.log('Homolog URL loaded from localStorage:', savedHomologUrl);
     }
     
-    // Carregar configuração de forçar API de homologação
+    // Load forced homolog API configuration
     const forceHomolog = localStorage.getItem('FORCE_HOMOLOG') === 'true';
     window.FORCE_HOMOLOG = forceHomolog;
     if (forceHomolog) {
-      console.log('Uso forçado de API de homologação ativado');
+      console.log('Forced homolog API usage activated');
     }
   }, []);
   
-  // Função personalizada para obter a URL da API
+  // Custom function to get the API URL
   const getApiUrl = useCallback(() => {
-    // Verificar se foi forçado o uso da API de homologação
+    // Check if forced homolog API usage is enabled
     if (window.FORCE_HOMOLOG || localStorage.getItem('FORCE_HOMOLOG') === 'true') {
       const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
       if (homologUrl) {
-        console.log('Usando API de homologação (forçado):', homologUrl);
+        console.log('Using homolog API (forced):', homologUrl);
         return homologUrl;
       }
     }
 
-    // Detecta ambiente local
+    // Detect local environment
     const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
     if (isLocal) {
-      // Verificar se existe URL de homologação configurada
+      // Check if homolog URL is configured
       const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
       if (homologUrl) {
-        console.log('Usando API de homologação:', homologUrl);
+        console.log('Using homolog API:', homologUrl);
         return homologUrl;
       }
-      console.log('Usando API local padrão: http://52.91.62.219:3001');
-      return 'http://52.91.62.219:3001'; // Porta corrigida para 3000
+      console.log('Using default local API: http://52.91.62.219:3001');
+      return 'http://52.91.62.219:3001';
     }
     
-    // Fallback para produção
-    console.log('Usando API de produção');
+    // Fallback to production
+    console.log('Using production API');
     return '';
   }, []);
   
-  // Função personalizada para buscar jogos com a URL correta
+  // Custom function to fetch games with the correct URL
   const fetchGamesCustom = useCallback(async () => {
     try {
       const apiUrl = getApiUrl();
-      console.log('Conectando à API:', apiUrl);
+      console.log('Connecting to API:', apiUrl);
       
-      // Implementação básica se precisarmos substituir a original
+      // Basic implementation if we need to replace the original
       const response = await fetch(`${apiUrl}/games`);
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
@@ -130,7 +129,7 @@ function Library() {
       try {
         // 1. First load all games from API
         console.log("Loading games from API...");
-        // Usar nossa versão modificada do fetchGames que respeita a configuração da API
+        // Use our modified version of fetchGames that respects API configuration
         const games = await fetchGamesCustom();
         console.log("Games loaded:", games);
         
@@ -218,7 +217,7 @@ function Library() {
     });
   }, [installedGames]);
   
-  // Dados de matérias e tipos de jogos
+  // Subject and game type data
   const subjects = [
     { id: 'matematica', name: 'Matemática' },
     { id: 'portugues', name: 'Língua Portuguesa' },
@@ -240,7 +239,7 @@ function Library() {
     { id: 'aventura', name: 'Aventura' }
   ];
   
-  // Alternar seleção de matéria (apenas para o estado temporário)
+  // Toggle subject selection (only for temporary state)
   const toggleSubject = (subjectId) => {
     setTempSelectedSubjects(prev => 
       prev.includes(subjectId) 
@@ -259,7 +258,7 @@ function Library() {
     });
   }, [installedGames]);
 
-  // Alternar seleção de tipo de jogo (apenas para o estado temporário)
+  // Toggle game type selection (only for temporary state)
   const toggleGameType = (gameTypeId) => {
     setTempSelectedGameTypes(prev => 
       prev.includes(gameTypeId) 
@@ -268,7 +267,7 @@ function Library() {
     );
   };
 
-  // Função melhorada para filtrar jogos
+  // Improved function to filter games
   const filterGames = (games, subjects = [], gameTypes = []) => {
     if (!subjects.length && !gameTypes.length) {
       return games;
@@ -287,12 +286,12 @@ function Library() {
       let tagsMatch = gameTypes.length === 0;
       
       if (!tagsMatch && game.tags && Array.isArray(game.tags)) {
-        // Verificar cada tag do jogo
+        // Check each tag of the game
         for (const tag of game.tags) {
-          // Verificar se a tag é um objeto com propriedade 'name'
+          // Check if the tag is an object with 'name' property
           if (typeof tag === 'object' && tag !== null && tag.name) {
             const tagName = tag.name.toLowerCase();
-            // Verificar se algum tipo de jogo selecionado corresponde a esta tag
+            // Check if any selected game type matches this tag
             for (const typeId of gameTypes) {
               const gameType = gameTypes.find(t => t.id === typeId);
               if (gameType) {
@@ -312,7 +311,7 @@ function Library() {
     });
   };
 
-  // Função para filtrar baseado apenas em nome de tag (sem depender de IDs)
+  // Function to filter based only on tag name (without relying on IDs)
   const filterGamesByTagName = (games, subjects = [], gameTypeNames = []) => {
     if (!subjects.length && !gameTypeNames.length) {
       return games;
@@ -354,14 +353,13 @@ function Library() {
     });
   };
 
-  // Função para aplicar filtros aos jogos
+  // Function to apply filters to games
   const applyFiltersToGames = useCallback(() => {
     if (selectedSubjects.length === 0 && selectedGameTypes.length === 0) {
       setIsFiltering(false);
       if (!isSearching) {
-        // Se não há filtros nem busca, mostrar todos os jogos
+        // If there are no filters or search, show all games
         setAvailableGames(allGames.filter(game => !game.installed));
-        // Não setamos mais o installedGames aqui
         return;
       }
     } else {
@@ -371,10 +369,10 @@ function Library() {
     setIsLoading(true);
     
     try {
-      // Obter jogos (todos ou resultados da busca atual)
+      // Get games (all or current search results)
       let gamesToFilter = allGames;
       
-      // Aplicar busca textual, se houver
+      // Apply text search, if there is one
       if (isSearching && searchTerm) {
         const term = searchTerm.toLowerCase();
         gamesToFilter = gamesToFilter.filter(game => {
@@ -382,7 +380,7 @@ function Library() {
           const gameDescription = (game.description || '').toLowerCase();
           const gameSubject = (game.subject || '').toLowerCase();
           
-          // Buscar nas tags, considerando que podem ser objetos com propriedade 'name'
+          // Search in tags, considering they can be objects with 'name' property
           let tagMatch = false;
           if (game.tags && Array.isArray(game.tags)) {
             tagMatch = game.tags.some(tag => {
@@ -401,20 +399,19 @@ function Library() {
         });
       }
 
-      // Aplicar filtros usando a função de filtragem por nome de tag
+      // Apply filters using the tag name filtering function
       const filteredGames = filterGamesByTagName(gamesToFilter, selectedSubjects, selectedGameTypes);
       
-      console.log("Filtros aplicados:", { 
+      console.log("Filters applied:", { 
         subjects: selectedSubjects, 
         gameTypes: selectedGameTypes,
         resultCount: filteredGames.length 
       });
       
-      // Atualizar apenas a lista de jogos disponíveis
+      // Update only the available games list
       setAvailableGames(filteredGames.filter(game => !game.installed));
-      // Não setamos mais o installedGames aqui
     } catch (err) {
-      setError(`Erro ao aplicar filtros: ${err.message}`);
+      setError(`Error applying filters: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -427,7 +424,7 @@ function Library() {
     }
   }, [selectedSubjects, selectedGameTypes, isSearching, searchTerm, applyFiltersToGames, isLoading, allGames]);
 
-  // Limpar filtros (temporários e aplicados)
+  // Clear filters (temporary and applied)
   const handleClearFilters = () => {
     // Clear both temporary and applied filters
     setTempSelectedSubjects([]);
@@ -437,7 +434,7 @@ function Library() {
     setIsFiltering(false);
   };
 
-  // Aplicar filtros ao clicar em "Salvar"
+  // Apply filters when clicking "Salvar"
   const handleApplyFilters = () => {
     // Apply temporary filters to the actual filter state
     setSelectedSubjects(tempSelectedSubjects);
@@ -448,17 +445,15 @@ function Library() {
     setIsFiltering(tempSelectedSubjects.length > 0 || tempSelectedGameTypes.length > 0);
   };
 
-  // Função de busca
+  // Search function
   const handleSearch = useCallback((term) => {
-    // Evitar busca repetida do mesmo termo
+    // Avoid repeated search with the same term
     if (term === lastSearchTerm && term !== '') return;
 
     setLastSearchTerm(term);
     setSearchTerm(term);
     setIsSearching(!!term);
   }, [lastSearchTerm]);
-
-
 
   // Debug function
   const logGameTags = useCallback(() => {
@@ -482,9 +477,9 @@ function Library() {
     }
   }, [allGames, logGameTags]);
 
-  // Função para navegar para a página de todos os jogos disponíveis
+  // Function to navigate to the all available games page
   const navigateToAllAvailableGames = () => {
-    // Salvar o estado atual dos filtros no localStorage para recuperar na outra página
+    // Save current filter state in localStorage to retrieve on the other page
     localStorage.setItem('gameFilters', JSON.stringify({
       searchTerm,
       selectedSubjects,
@@ -496,9 +491,9 @@ function Library() {
     navigate('/available-games');
   };
 
-  // Função para navegar para a página de todos os jogos instalados
+  // Function to navigate to the all installed games page
   const navigateToAllInstalledGames = () => {
-    // Salvar o estado atual dos filtros no localStorage para recuperar na outra página
+    // Save current filter state in localStorage to retrieve on the other page
     localStorage.setItem('gameFilters', JSON.stringify({
       searchTerm,
       selectedSubjects,
@@ -514,19 +509,19 @@ function Library() {
     <div className="app">
       <header className="header">
         <div className="search-container">
-        <div className='iupi logo'>
-        <img 
-        src={iupi} 
-        alt="iupi logo" 
-        className='iupi-logo' 
-        style={{ 
-          width: '120px', 
-          height: 'auto',
-          alignSelf: 'flex-start',
-          marginRight: '670px'  // Aumentando o espaço entre o logo e o filtro
-        }} 
-      />
-        </div>
+          <div className='iupi logo'>
+            <img 
+              src={iupi} 
+              alt="iupi logo" 
+              className='iupi-logo' 
+              style={{ 
+                width: '120px', 
+                height: 'auto',
+                alignSelf: 'flex-start',
+                marginRight: '670px'  // Increasing space between logo and filter
+              }} 
+            />
+          </div>
           <button 
             className={`filter-button ${isFiltering ? 'active' : ''}`} 
             onClick={toggleFilterPopup}
@@ -550,12 +545,10 @@ function Library() {
           </button>
 
           <SearchBar 
-  onSearch={handleSearch} 
-  debounceTime={500} 
-  initialValue={searchTerm}
-/>
-
-          
+            onSearch={handleSearch} 
+            debounceTime={500} 
+            initialValue={searchTerm}
+          />
         </div>
       </header>
 
@@ -583,22 +576,22 @@ function Library() {
             }
             
             if (filterId) {
-              // Se é um Tipo de Jogo
+              // If it's a Game Type
               if (['raciocinio', 'quebra-cabeca', 'memoria'].includes(filterId)) {
-                // Adicionar ao estado temporário se ainda não estiver lá
+                // Add to temporary state if not already there
                 if (!tempSelectedGameTypes.includes(filterId)) {
                   setTempSelectedGameTypes(prev => [...prev, filterId]);
                 }
               } 
-              // Se é uma Matéria
+              // If it's a Subject
               else {
-                // Adicionar ao estado temporário se ainda não estiver lá
+                // Add to temporary state if not already there
                 if (!tempSelectedSubjects.includes(filterId)) {
                   setTempSelectedSubjects(prev => [...prev, filterId]);
                 }
               }
               
-              // Abrir o popup de filtro para melhor visibilidade
+              // Open the filter popup for better visibility
               setIsFilterOpen(true);
             }
           }}
@@ -615,7 +608,7 @@ function Library() {
                 <Carousel
                   title="Jogos Disponíveis"
                   onSeeMore={navigateToAllAvailableGames}
-                  maxItems={availableGames.length} // Agora usa todos os jogos disponíveis
+                  maxItems={availableGames.length} // Now uses all available games
                   totalItems={availableGames.length}
                 >
                   {availableGames.map(game => (
@@ -632,6 +625,7 @@ function Library() {
                       path={game.path}
                       description={game.description}
                       url={game.url}
+                      installedGames={installedGames} // Pass installedGames to the component
                     />
                   ))}
                 </Carousel>
@@ -643,10 +637,9 @@ function Library() {
                 <Carousel
                   title="Jogos Instalados"
                   onSeeMore={navigateToAllInstalledGames}
-                  maxItems={installedGames.length} // Agora usa todos os jogos instalados
+                  maxItems={installedGames.length} // Now uses all installed games
                   totalItems={installedGames.length}
                 >
-                  {/* Renderiza todos os jogos instalados */}
                   {installedGames.map(game => (
                     <GameCard
                       key={game.id || `installed-${game.name || game.title}`}
@@ -661,6 +654,7 @@ function Library() {
                       path={game.path}
                       description={game.description}
                       url={game.url}
+                      installedGames={installedGames} // Pass installedGames for consistency
                     />
                   ))}
                 </Carousel>
@@ -676,7 +670,6 @@ function Library() {
                 ) : (
                   <p>Nenhum jogo disponível</p>
                 )}
-               
               </div>
             )}
           </>
@@ -727,11 +720,11 @@ function Library() {
                 onChange={e => {
                   const value = e.target.value.trim();
                   if (value) {
-                    // Guardar valor na localStorage para persistência
+                    // Store value in localStorage for persistence
                     localStorage.setItem('HOMOLOG_API_URL', value);
-                    // Definir variável global
+                    // Set global variable
                     window.HOMOLOG_API_URL = value;
-                    console.log('API URL definida:', window.HOMOLOG_API_URL);
+                    console.log('API URL defined:', window.HOMOLOG_API_URL);
                   } else {
                     localStorage.removeItem('HOMOLOG_API_URL');
                     window.HOMOLOG_API_URL = null;
@@ -764,7 +757,7 @@ function Library() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
               <button 
                 onClick={() => {
-                  // Remove os valores
+                  // Remove values
                   localStorage.removeItem('HOMOLOG_API_URL');
                   localStorage.removeItem('FORCE_HOMOLOG');
                   window.HOMOLOG_API_URL = null;
@@ -787,7 +780,7 @@ function Library() {
               
               <button 
                 onClick={() => {
-                  // Recarregar a página para aplicar a nova URL da API
+                  // Reload the page to apply the new API URL
                   closeDebugPopup();
                   window.location.reload();
                 }}

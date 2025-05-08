@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import defaultImage from '../../assets/Telahorizontal.svg';
 
-const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, executablePath, tags, description, url }) => {
+const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, executablePath, tags, description, url, installedGames }) => {
   const navigate = useNavigate();
   const [displayImage, setDisplayImage] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -119,8 +119,50 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
     setDisplayImage(defaultImage);
   };
 
+  // Check if this game is already installed by comparing titles
+  const checkIfGameInstalled = () => {
+    if (!installedGames || !installedGames.length) return null;
+    
+    const gameTitle = (title || '').toLowerCase().trim();
+    
+    return installedGames.find(installedGame => {
+      const installedTitle = (installedGame.title || installedGame.name || '').toLowerCase().trim();
+      return gameTitle === installedTitle || gameTitle.includes(installedTitle) || installedTitle.includes(gameTitle);
+    });
+  };
+
   const handleGameCardClick = () => {
-    if (isInstalled && executablePath) {
+    // First check if this is already an installed game
+    const installedGameData = checkIfGameInstalled();
+    
+    // If this game is in the "Available" section but it's already installed,
+    // treat it like an installed game
+    if (!isInstalled && installedGameData) {
+      console.log(`Game ${title} is in Available section but already installed. Using installed data.`);
+      
+      // Use the game's title as ID for installed games
+      const gameId = installedGameData.id || `installed-${installedGameData.title || installedGameData.name}`;
+      
+      // Store game data in sessionStorage to access it on the game page
+      const gameDataToStore = {
+        id: gameId,
+        title: installedGameData.title || installedGameData.name,
+        name: installedGameData.title || installedGameData.name,
+        image: installedGameData.image || displayImage,
+        images: installedGameData.images || [installedGameData.image || displayImage].filter(Boolean),
+        description: installedGameData.description || description || '',
+        tags: installedGameData.tags || tags || [],
+        subject: installedGameData.subject || subject || '',
+        installed: true,
+        executablePath: installedGameData.executablePath,
+        path: installedGameData.path,
+        url: installedGameData.url || url
+      };
+      
+      sessionStorage.setItem('installedGameData', JSON.stringify(gameDataToStore));
+      navigate(`/game/${gameId}`);
+    }
+    else if (isInstalled && executablePath) {
       // For installed games, navigate to the game page with all available info
       console.log(`Game clicked: ${title}, is installed: ${isInstalled}`);
       

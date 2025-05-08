@@ -16,10 +16,69 @@ export default function GamePage() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [executablePath, setExecutablePath] = useState(null);
   const [currentGroup, setCurrentGroup] = useState(0);
+  const [processedImages, setProcessedImages] = useState([]);
   
   const navigate = useNavigate();
   const { id } = useParams();
   const SLIDES_PER_GROUP = 3;
+
+  // Função para carregar imagem como base64 via API Electron
+  const loadImageAsBase64 = async (imagePath) => {
+    if (!imagePath) return null;
+    
+    try {
+      console.log('Carregando imagem como Base64:', imagePath);
+      
+      // Verificar se a API do Electron está disponível
+      if (!window.electronAPI || !window.electronAPI.getImageBase64) {
+        console.error('API do Electron para getImageBase64 não disponível');
+        return imagePath; // Retorna o caminho original se a API não estiver disponível
+      }
+      
+      // Chamar a API do Electron para converter a imagem para base64
+      const base64Data = await window.electronAPI.getImageBase64(imagePath);
+      console.log('Imagem carregada com sucesso como base64');
+      return base64Data;
+    } catch (error) {
+      console.error('Erro ao carregar imagem como base64:', error);
+      return null;
+    }
+  };
+
+  // Função para processar array de imagens, convertendo para base64 se necessário
+  const processImages = async (images, isInstalledGame) => {
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return [];
+    }
+    
+    const processedImages = [];
+    
+    // Para jogos instalados, precisamos converter as imagens para base64
+    if (isInstalledGame) {
+      console.log('Processando imagens para jogo instalado:', images);
+      
+      for (const imgPath of images) {
+        // Verificar se a imagem já é uma string base64
+        if (imgPath && typeof imgPath === 'string' && imgPath.startsWith('data:')) {
+          processedImages.push(imgPath);
+          continue;
+        }
+        
+        // Tentar carregar a imagem como base64
+        const base64Data = await loadImageAsBase64(imgPath);
+        if (base64Data) {
+          console.log(`Imagem carregada com sucesso: ${imgPath.substring(0, 50)}...`);
+          processedImages.push(base64Data);
+        }
+      }
+    } else {
+      // Para jogos não instalados, usar as URLs diretamente
+      processedImages.push(...images);
+    }
+    
+    console.log(`Processamento concluído. Total de imagens válidas: ${processedImages.length}`);
+    return processedImages.filter(Boolean); // Remover possíveis valores nulos
+  };
 
   useEffect(() => {
     const loadGameData = async () => {
@@ -48,7 +107,40 @@ export default function GamePage() {
               console.log('Loading game data from session storage:', parsedData);
               console.log('Executable path from session:', parsedData.executablePath);
               
-              setGameData(parsedData);
+              // Extrair o nome da pasta do caminho do jogo
+              let gameFolderName = '';
+              if (parsedData.path) {
+                const pathParts = parsedData.path.split('/');
+                gameFolderName = pathParts[pathParts.length - 1];
+              }
+              
+              // Inicializa array com todas as imagens para processar
+              let imagesToProcess = [];
+              
+              // Adiciona a imagem principal se existir
+              if (parsedData.image) {
+                imagesToProcess.push(parsedData.image);
+              }
+              
+              // Se temos o nome da pasta do jogo, tentamos carregar todas as screenshots
+              if (gameFolderName) {
+                for (let i = 1; i <= 6; i++) {
+                  const screenshotPath = `lib/${gameFolderName}/images/screenshot-${i}.jpg`;
+                  console.log(`Adding possible screenshot path: ${screenshotPath}`);
+                  imagesToProcess.push(screenshotPath);
+                }
+              }
+              
+              // Processa as imagens para formato base64
+              const processedImgs = await processImages(imagesToProcess, true);
+              
+              const updatedData = {
+                ...parsedData,
+                images: processedImgs
+              };
+              
+              setGameData(updatedData);
+              setProcessedImages(processedImgs);
               setIsInstalled(true);
               
               if (parsedData.executablePath) {
@@ -101,14 +193,45 @@ export default function GamePage() {
             console.log('Found installed game:', foundGame);
             console.log('Executable path for installed game:', foundGame.executablePath);
             
-            // If found, set it as game data
+            // Se encontrado, verificamos se há imagens disponíveis
+            let imagesToProcess = [];
+            
+            // Se o jogo tem a propriedade 'image', adicionamos à lista
+            if (foundGame.image) {
+              console.log('Found image for installed game:', foundGame.image);
+              imagesToProcess.push(foundGame.image);
+            }
+            
+                          // Tentar construir caminhos para screenshots adicionais
+            if (foundGame.path) {
+              try {
+                // Extrair o nome da pasta do jogo do caminho completo
+                const pathParts = foundGame.path.split('/');
+                const folderName = pathParts[pathParts.length - 1];
+                
+                // Para cada screenshot possível, construir o caminho e tentar carregar
+                for (let i = 1; i <= 10; i++) { // Tenta até 10 screenshots
+                  const screenshotPath = `lib/${folderName}/images/screenshot-${i}.jpg`;
+                  console.log(`Trying to load additional screenshot: ${screenshotPath}`);
+                  // Não verificamos se o arquivo existe aqui - deixamos isso para a função loadImageAsBase64
+                  imagesToProcess.push(screenshotPath);
+                }
+              } catch (findImagesError) {
+                console.error('Error constructing paths for screenshots:', findImagesError);
+              }
+            }
+            
+            // Processar as imagens para base64
+            const processedImgs = await processImages(imagesToProcess, true);
+            
             const gameDataObj = {
               ...foundGame,
               id: id, // Ensure ID is preserved
-              images: foundGame.image ? [foundGame.image] : []
+              images: processedImgs
             };
             
             setGameData(gameDataObj);
+            setProcessedImages(processedImgs);
             setIsInstalled(true);
             
             if (foundGame.executablePath) {
@@ -152,20 +275,25 @@ export default function GamePage() {
               }
             }
             
-            // If the game has a URL, try to get a description via web scraping
-            if (foundGame.url) {
+            // If the game has a URL and we have no images, try to get more info via web scraping
+            if (foundGame.url && (!processedImgs.length || processedImgs.length === 0)) {
               try {
                 const scrapedData = await window.electronAPI.scrapeGame(foundGame.url);
                 
                 if (!scrapedData.error) {
+                  // Process additional scraped images
+                  const scrapedImages = scrapedData.images || [];
+                  const processedScrapedImgs = await processImages(scrapedImages, false);
+                  
                   // Update game data with description and additional images
                   const updatedData = {
                     ...gameDataObj,
                     description: gameDataObj.description || scrapedData.description,
-                    images: [...(gameDataObj.images || []), ...(scrapedData.images || [])].filter(Boolean)
+                    images: [...processedImgs, ...processedScrapedImgs].filter(Boolean)
                   };
                   
                   setGameData(updatedData);
+                  setProcessedImages(updatedData.images);
                   
                   // Update session storage
                   sessionStorage.setItem('installedGameData', JSON.stringify(updatedData));
@@ -225,15 +353,27 @@ export default function GamePage() {
               }
             }
             
+            // Processar imagens do jogo instalado
+            const installedImages = matchedInstalledGame.image ? [matchedInstalledGame.image] : [];
+            const processedInstalledImgs = await processImages(installedImages, true);
+            
             // Merge data from API and installed game
             game.executablePath = matchedInstalledGame.executablePath || null;
             game.installed = true;
             game.path = matchedInstalledGame.path || null;
             
-            // If the installed game has an image, use it
-            if (matchedInstalledGame.image) {
-              game.images = [matchedInstalledGame.image, ...(game.images || [])];
-            }
+            // Combinar imagens do jogo instalado com as do API
+            const apiImages = game.images || [];
+            const processedApiImgs = await processImages(apiImages, false);
+            
+            game.images = [...processedInstalledImgs, ...processedApiImgs].filter(Boolean);
+            setProcessedImages(game.images);
+          } else {
+            // Processar imagens do jogo não instalado
+            const apiImages = game.images || [];
+            const processedApiImgs = await processImages(apiImages, false);
+            game.images = processedApiImgs;
+            setProcessedImages(processedApiImgs);
           }
         }
         
@@ -243,10 +383,15 @@ export default function GamePage() {
             const scrapedData = await window.electronAPI.scrapeGame(game.url);
             
             if (!scrapedData.error) {
+              // Process scraped images
+              const scrapedImages = scrapedData.images || [];
+              const processedScrapedImgs = await processImages(scrapedImages, false);
+              
               // Merge scraped data with existing game data
-              game.images = scrapedData.images || [];
+              game.images = processedScrapedImgs;
+              setProcessedImages(processedScrapedImgs);
               game.description = game.description || scrapedData.description;
-              game.cardImage = game.cardImage || (scrapedData.images && scrapedData.images.length > 0 ? scrapedData.images[0] : null);
+              game.cardImage = game.cardImage || (processedScrapedImgs.length > 0 ? processedScrapedImgs[0] : null);
               game.tags = game.tags || scrapedData.tags || [];
             }
           } catch (scrapeError) {
@@ -277,12 +422,12 @@ export default function GamePage() {
   };
 
   const nextSlide = () => {
-    if (!gameData?.images?.length) return;
+    if (!processedImages?.length) return;
     
     const nextIndex = currentSlide + 1;
     
     // Se atingiu o final das imagens, volte para o início
-    if (nextIndex >= gameData.images.length) {
+    if (nextIndex >= processedImages.length) {
       setCurrentSlide(0);
       setCurrentGroup(0);
       return;
@@ -298,13 +443,13 @@ export default function GamePage() {
   };
 
   const prevSlide = () => {
-    if (!gameData?.images?.length) return;
+    if (!processedImages?.length) return;
     
     const prevIndex = currentSlide - 1;
     
     // Se está no início, vá para o final
     if (prevIndex < 0) {
-      const lastIndex = gameData.images.length - 1;
+      const lastIndex = processedImages.length - 1;
       setCurrentSlide(lastIndex);
       setCurrentGroup(Math.floor(lastIndex / SLIDES_PER_GROUP));
       return;
@@ -320,38 +465,38 @@ export default function GamePage() {
   };
 
   const nextGroup = () => {
-    if (!gameData?.images?.length) return;
+    if (!processedImages?.length) return;
     
-    const totalGroups = Math.ceil(gameData.images.length / SLIDES_PER_GROUP);
+    const totalGroups = Math.ceil(processedImages.length / SLIDES_PER_GROUP);
     const newGroup = currentGroup === totalGroups - 1 ? 0 : currentGroup + 1;
     setCurrentGroup(newGroup);
     
     // Atualiza a imagem principal para a primeira imagem do novo grupo
     const newSlideIndex = newGroup * SLIDES_PER_GROUP;
-    if (newSlideIndex < gameData.images.length) {
+    if (newSlideIndex < processedImages.length) {
       setCurrentSlide(newSlideIndex);
     }
   };
 
   const prevGroup = () => {
-    if (!gameData?.images?.length) return;
+    if (!processedImages?.length) return;
     
-    const totalGroups = Math.ceil(gameData.images.length / SLIDES_PER_GROUP);
+    const totalGroups = Math.ceil(processedImages.length / SLIDES_PER_GROUP);
     const newGroup = currentGroup === 0 ? totalGroups - 1 : currentGroup - 1;
     setCurrentGroup(newGroup);
     
     // Atualiza a imagem principal para a primeira imagem do novo grupo
     const newSlideIndex = newGroup * SLIDES_PER_GROUP;
-    if (newSlideIndex < gameData.images.length) {
+    if (newSlideIndex < processedImages.length) {
       setCurrentSlide(newSlideIndex);
     }
   };
 
   const getCurrentGroupImages = () => {
-    if (!gameData?.images?.length) return [];
+    if (!processedImages?.length) return [];
     
     const startIndex = currentGroup * SLIDES_PER_GROUP;
-    return gameData.images.slice(startIndex, startIndex + SLIDES_PER_GROUP);
+    return processedImages.slice(startIndex, startIndex + SLIDES_PER_GROUP);
   };
 
   const handleBackClick = () => {
@@ -401,7 +546,6 @@ export default function GamePage() {
     
     // Call the Electron API to launch the game
     window.electronAPI.openFileByPath(path, gameData.title || gameData.name)
-
   };
 
   // Extract game tags for categories
@@ -483,9 +627,9 @@ export default function GamePage() {
           <div className="game-board">
             <div className="card-container">
               <div className="single-card">
-                {gameData.images && gameData.images.length > 0 ? (
+                {processedImages && processedImages.length > 0 ? (
                   <img 
-                    src={gameData.images[currentSlide]} 
+                    src={processedImages[currentSlide]} 
                     alt={`${gameData.title || 'Jogo'} preview`}
                     onError={handleImageError}
                   />
@@ -500,7 +644,7 @@ export default function GamePage() {
           </div>
 
           {/* Carousel controls - only show if there are multiple images */}
-          {gameData.images && gameData.images.length > 1 && (
+          {processedImages && processedImages.length > 1 && (
             <div className="carousel-container-gamePage">
               <button onClick={prevSlide} className="carousel-button">
                 <ChevronLeft size={48} />
@@ -554,7 +698,6 @@ export default function GamePage() {
                 console.log('Download completed with data:', game);
                 setIsInstalled(true);
                 
-               
                 if (game && game.executablePath) {
                   console.log(`Executável encontrado: ${game.executablePath}`);
                   setExecutablePath(game.executablePath);

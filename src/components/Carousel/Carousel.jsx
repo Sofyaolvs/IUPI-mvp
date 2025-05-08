@@ -10,7 +10,7 @@ const Carousel = ({ title, children, onSeeMore }) => {
     if (!carouselRef.current) return;
 
     const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-    setIsAtStart(scrollLeft <= 10); // margem de 10px
+    setIsAtStart(scrollLeft <= 10); // 10px margin
     const atEnd = Math.abs((scrollLeft + clientWidth) - scrollWidth) < 10;
     setIsAtEnd(atEnd);
   };
@@ -27,9 +27,14 @@ const Carousel = ({ title, children, onSeeMore }) => {
     }
   }, []);
 
+  // Recalculate scroll position when children change
+  useEffect(() => {
+    checkScrollPosition();
+  }, [children]);
+
   const scrollLeft = () => {
     if (carouselRef.current) {
-      const itemWidth = carouselRef.current.offsetWidth / 3; // ⅓ da largura visível
+      const itemWidth = carouselRef.current.offsetWidth / 3; // ⅓ of visible width
       carouselRef.current.scrollBy({
         left: -itemWidth,
         behavior: 'smooth'
