@@ -1,5 +1,5 @@
 .subject-page {
-  padding: 1rem;
+  padding: 2rem; /* Aumentado de 1rem para 2rem */
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -7,7 +7,8 @@
 .subject-header {
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem; /* Aumentado de 2rem para 2.5rem */
+  padding-left: 0.5rem; /* Adicionado para alinhar com o grid */
 }
 
 .back-button-subject {
@@ -17,7 +18,7 @@
   color: #333;
   cursor: pointer;
   padding: 0.5rem;
-  margin-right: 1rem;
+  margin-right: 1.5rem; /* Aumentado de 1rem para 1.5rem */
   display: flex;
   align-items: center;
   transition: all 0.2s;
@@ -33,7 +34,8 @@
 }
 
 .subject-content {
-  margin-top: 1rem;
+  margin-top: 2rem; /* Aumentado de 1rem para 2rem */
+  padding: 0 0.5rem; /* Adicionado para garantir alinhamento */
 }
 
 .games-grid {
@@ -53,5 +55,5 @@
 .error-message {
   color: red;
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem; /* Aumentado de 1rem para 1.5rem */
 }

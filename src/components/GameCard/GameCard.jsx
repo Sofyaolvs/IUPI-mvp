@@ -175,7 +175,7 @@ const GameCard = ({ image, cardImage, title, subject, id, isInstalled, path, exe
         title: title,
         name: title,
         image: displayImage,
-        images: [displayImage], // Put the main image in an array for the carousel
+        images: [displayImage], 
         description: description || '',
         tags: tags || [],
         subject: subject || '',

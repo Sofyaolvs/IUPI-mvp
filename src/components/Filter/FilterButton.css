@@ -16,13 +16,14 @@
 .filter-popup {
   background-color: #ECF1F5;
   border-radius: 10px;
+  margin-right: 26px; /*arrumar*/
   width: 500px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 20px;
   position: absolute;
   top: 13%;
-  right: 33%; /* Position from the right for your 2100px monitor */
+  right: 33%; 
   z-index: 1001;
   display: flex;
   flex-direction: column;

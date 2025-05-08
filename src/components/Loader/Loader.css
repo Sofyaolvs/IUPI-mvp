@@ -1,7 +1,6 @@
 .wave-bouncing-loading-animation {
   position: relative;
   font-size: min(60px, 6vw);
-  -webkit-box-reflect: below -0.4em linear-gradient(transparent, #00000045);
   display: flex;
   gap: 35px;
   margin: 50vh;
