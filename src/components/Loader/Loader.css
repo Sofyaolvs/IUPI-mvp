@@ -1,10 +1,9 @@
 .wave-bouncing-loading-animation {
   position: relative;
   font-size: min(60px, 6vw);
-  color: #090B81;
   -webkit-box-reflect: below -0.4em linear-gradient(transparent, #00000045);
   display: flex;
-  gap: 15px;
+  gap: 35px;
   margin: 50vh;
   display: flex;
   align-self: center;
@@ -21,10 +20,17 @@
   width: 80px;
   height: 80px;
 }
+.letra img {
+  width: 100px;
+  height: 100px;
+  margin: 30px;
+  
+}
+
         
-.letra {
-  font-family: 'Cherry Bomb One', cursive; /* Adicionada a fonte Cherry Bomb One */
-  background-color: #E99428;
+/* .letra {
+  font-family: 'Cherry Bomb One', cursive; 
+   background-color: #E99428; 
   border-radius: 50% !important;
   -webkit-text-stroke-width: 2px;
   -webkit-text-stroke-color: #292F6B;
@@ -33,11 +39,10 @@
   width: 100%;
   height: 100%;
   display: flex;
-  font-weight: 900 !important;
   justify-content: center;
   align-items: center;
   margin-bottom: 15px;
-}
+} */
         
 @keyframes bouncing-wave-animation {
   0%, 40%, 100% {
