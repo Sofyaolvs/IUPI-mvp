@@ -1,20 +1,21 @@
 import React from 'react';
 import './Loader.css';
 
+// Importando SVGs
+import SvgI from '../../assets/IUPI-SVG/I.svg';
+import SvgU from '../../assets/IUPI-SVG/u.svg';
+import SvgP from '../../assets/IUPI-SVG/P.svg';
+import SvgExcl from '../../assets/IUPI-SVG/exclamation.svg';
+
 function Loader() {
   return (
     <>
-
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-      <link href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet" />
-      
       <div className="wave-bouncing-loading-animation" role="alert" aria-busy="true" aria-label="Loading">
-        <span style={{"--item": 1}} className="letra">I</span>
-        <span style={{"--item": 2}} className="letra">U</span>
-        <span style={{"--item": 3}} className="letra">P</span>
-        <span style={{"--item": 4}} className="letra">I</span>
-        <span style={{"--item": 5}} className="letra">!</span>
+        <span style={{"--item": 1}} className="letra"><img src={SvgI} alt="I" /></span>
+        <span style={{"--item": 2}} className="letra"><img src={SvgU} alt="U" /></span>
+        <span style={{"--item": 3}} className="letra"><img src={SvgP} alt="P" /></span>
+        <span style={{"--item": 4}} className="letra"><img src={SvgI} alt="I" /></span>
+        <span style={{"--item": 5}} className="letra"><img src={SvgExcl} alt="!" /></span>
       </div>
     </>
   );
