@@ -151,7 +151,7 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
       case 'extracting': return 'Extraindo...';
       case 'completed': return 'Jogar';
       case 'error': return 'Tentar Novamente';
-      default: return 'Baixar';
+      default: return 'Instalar';
     }
   };
 

@@ -445,6 +445,15 @@ function Library() {
     setIsFiltering(tempSelectedSubjects.length > 0 || tempSelectedGameTypes.length > 0);
   };
 
+  // Function to remove a specific filter tag
+  const removeFilterTag = (type, id) => {
+    if (type === 'subject') {
+      setSelectedSubjects(prev => prev.filter(subjectId => subjectId !== id));
+    } else if (type === 'gameType') {
+      setSelectedGameTypes(prev => prev.filter(gameTypeId => gameTypeId !== id));
+    }
+  };
+
   // Search function
   const handleSearch = useCallback((term) => {
     // Avoid repeated search with the same term
@@ -505,6 +514,18 @@ function Library() {
     navigate('/installed-games');
   };
 
+  // Function to get the name of a subject by its ID
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.name : subjectId;
+  };
+
+  // Function to get the name of a game type by its ID
+  const getGameTypeName = (gameTypeId) => {
+    const gameType = gameTypes.find(gt => gt.id === gameTypeId);
+    return gameType ? gameType.name : gameTypeId;
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -552,6 +573,25 @@ function Library() {
         </div>
       </header>
 
+      {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
+  <div style={{ marginTop: '10px' }}>
+    <strong>Filtros aplicados:</strong>
+    <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '5px' }}>
+      {selectedSubjects.map(subjectId => (
+        <span key={subjectId} className="filter-tag">
+          {subjectId}
+          <button onClick={() => removeFilterTag('subject', subjectId)}>×</button>
+        </span>
+      ))}
+      {selectedGameTypes.map(gameType => (
+        <span key={gameType} className="filter-tag">
+          {gameType}
+          <button onClick={() => removeFilterTag('gameType', gameType)}>×</button>
+        </span>
+      ))}
+    </div>
+  </div>
+)}
       <main className="main-content">
         <Subject 
           subjects={subjectsData} 
