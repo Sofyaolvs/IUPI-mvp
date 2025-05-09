@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from "react";
+
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Carousel from '../../components/Carousel/Carousel.jsx';
@@ -122,6 +123,21 @@ function Library() {
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
+
+  // IMPLEMENTAÇÃO DA LÓGICA SOLICITADA
+  useEffect(() => {
+    const carregarJogos = async () => {
+      try {
+        const jogos = await fetchGames();
+        console.log('Jogos carregados:', jogos);
+        // Você pode atualizar o estado aqui, por exemplo:
+        // setAvailableGames(jogos);
+      } catch (erro) {
+        console.error('Erro ao buscar jogos:', erro);
+      }
+    };
+    carregarJogos();
+  }, []);
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
