@@ -124,7 +124,7 @@ export default function GamePage() {
               
               // Se temos o nome da pasta do jogo, tentamos carregar todas as screenshots
               if (gameFolderName) {
-                for (let i = 1; i <= 6; i++) {
+                for (let i = 2; i <= 6; i++) {
                   const screenshotPath = `lib/${gameFolderName}/images/screenshot-${i}.jpg`;
                   console.log(`Adding possible screenshot path: ${screenshotPath}`);
                   imagesToProcess.push(screenshotPath);

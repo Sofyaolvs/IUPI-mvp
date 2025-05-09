@@ -73,7 +73,7 @@ const SubjectPage = () => {
         {isLoading ? (
           <Loader message="Carregando jogos" />
         ) : (
-          <div className="games-grid">
+          <div className="games-grid-subject">
             {games.length > 0 ? (
               games.map(game => (
                 <GameCard

@@ -15,6 +15,7 @@
 
 .header {
   margin-bottom: 20px;
+  
 }
 
 .search-container {
@@ -27,10 +28,6 @@
   background-color: transparent;
   color: #090B81;
   
-}
-
-.filter-icon {
-  color: #2a52be;
 }
 
 .search-box {
@@ -55,7 +52,7 @@
   cursor: pointer;
 }
 
-.search-icon {
+.search-icon-library {
   font-size: 16px;
   color: #090B81;
 }

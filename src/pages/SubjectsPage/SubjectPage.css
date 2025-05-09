@@ -38,10 +38,11 @@
   padding: 0 0.5rem; /* Adicionado para garantir alinhamento */
 }
 
-.games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
+.games-grid-subject {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .no-games-message {

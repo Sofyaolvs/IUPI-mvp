@@ -23,7 +23,7 @@
   padding: 20px;
   position: absolute;
   top: 13%;
-  right: 33%; 
+  right: 30.5%; 
   z-index: 1001;
   display: flex;
   flex-direction: column;
@@ -155,21 +155,21 @@
 
 @media screen and (max-width: 1600px) {
   .filter-popup {
-    right: 28%;
+    right: 25%;
     top: 17%;
   }
 }
 
 @media screen and (max-width: 1366px) {
   .filter-popup {
-    right: 25%;
+    right: 20%;
     top: 17%;
   }
 }
 
 @media screen and (max-width: 1280px) {
   .filter-popup {
-    right: 25%;
+    right: 8%;
     top: 17%;
   }
 }

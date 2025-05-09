@@ -518,7 +518,7 @@ function Library() {
                 width: '120px', 
                 height: 'auto',
                 alignSelf: 'flex-start',
-                marginRight: '670px'  // Increasing space between logo and filter
+                marginRight: '700px'  // Increasing space between logo and filter
               }} 
             />
           </div>
