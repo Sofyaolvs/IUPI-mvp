@@ -117,3 +117,35 @@
   margin: 0.5rem 0;
   font-size: 0.9rem;
 }
+
+/* AppliedFilters.css */
+
+.filter-tag {
+  border: 1px solid #090B81;
+  color: #090B81;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  margin: 4px;
+  transition: background-color 0.3s;
+  cursor: default;
+}
+
+.filter-tag button {
+  background: none;
+  border: none;
+  color: white;
+  background-color: #090B81;
+  width: 20px;
+  height: 20px;
+  border-radius: 25px;
+  margin-left: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+}
+
+

@@ -147,11 +147,11 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
 
   const getButtonText = () => {
     switch (downloadState) {
-      case 'downloading': return 'Baixando...';
+      case 'downloading': return 'Instalando...';
       case 'extracting': return 'Extraindo...';
       case 'completed': return 'Jogar';
       case 'error': return 'Tentar Novamente';
-      default: return 'Baixar';
+      default: return 'Instalar';
     }
   };
 

@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../../components/GameCard/GameCard.jsx';
 import Carousel from '../../components/Carousel/Carousel.jsx';
@@ -34,6 +33,28 @@ const subjectsData = [
   { id: 4, title: 'Geografia', image: fortal_run },
   { id: 5, title: 'Ciências', image: joy_defenders },
   { id: 6, title: 'Arte', image: lacos_da_amizade2 },
+];
+
+// Subject and game type data - Movido para o início para fácil acesso
+const subjects = [
+  { id: 'matematica', name: 'Matemática' },
+  { id: 'portugues', name: 'Língua Portuguesa' },
+  { id: 'ciencias', name: 'Ciências' },
+  { id: 'geografia', name: 'Geografia' },
+  { id: 'historia', name: 'História' },
+  { id: 'arte', name: 'Arte' }
+];
+
+const gameTypes = [
+  { id: 'logica', name: 'Lógica' },
+  { id: 'memoria', name: 'Memória' },
+  { id: 'quebra-cabeca', name: 'Quebra-cabeça' },
+  { id: 'raciocinio', name: 'Raciocínio' },
+  { id: 'estrategia', name: 'Estratégia' },
+  { id: 'colorir', name: 'Colorir' },
+  { id: 'plataforma', name: 'Plataforma' },
+  { id: 'tabuleiro', name: 'Tabuleiro' },
+  { id: 'aventura', name: 'Aventura' }
 ];
 
 function Library() {
@@ -123,21 +144,6 @@ function Library() {
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
-
-  // IMPLEMENTAÇÃO DA LÓGICA SOLICITADA
-  useEffect(() => {
-    const carregarJogos = async () => {
-      try {
-        const jogos = await fetchGames();
-        console.log('Jogos carregados:', jogos);
-        // Você pode atualizar o estado aqui, por exemplo:
-        // setAvailableGames(jogos);
-      } catch (erro) {
-        console.error('Erro ao buscar jogos:', erro);
-      }
-    };
-    carregarJogos();
-  }, []);
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
@@ -233,37 +239,6 @@ function Library() {
     });
   }, [installedGames]);
   
-  // Subject and game type data
-  const subjects = [
-    { id: 'matematica', name: 'Matemática' },
-    { id: 'portugues', name: 'Língua Portuguesa' },
-    { id: 'ciencias', name: 'Ciências' },
-    { id: 'geografia', name: 'Geografia' },
-    { id: 'historia', name: 'História' },
-    { id: 'arte', name: 'Arte' }
-  ];
-
-  const gameTypes = [
-    { id: 'logica', name: 'Lógica' },
-    { id: 'memoria', name: 'Memória' },
-    { id: 'quebra-cabeca', name: 'Quebra-cabeça' },
-    { id: 'raciocinio', name: 'Raciocínio' },
-    { id: 'estrategia', name: 'Estratégia' },
-    { id: 'colorir', name: 'Colorir' },
-    { id: 'plataforma', name: 'Plataforma' },
-    { id: 'tabuleiro', name: 'Tabuleiro' },
-    { id: 'aventura', name: 'Aventura' }
-  ];
-  
-  // Toggle subject selection (only for temporary state)
-  const toggleSubject = (subjectId) => {
-    setTempSelectedSubjects(prev => 
-      prev.includes(subjectId) 
-        ? prev.filter(id => id !== subjectId) 
-        : [...prev, subjectId]
-    );
-  };
-
   const getInstalledGameData = useCallback((game) => {
     if (!game || !installedGames.length) return null;
     
@@ -273,6 +248,15 @@ function Library() {
       return gameName === installedName;
     });
   }, [installedGames]);
+
+  // Toggle subject selection (only for temporary state)
+  const toggleSubject = (subjectId) => {
+    setTempSelectedSubjects(prev => 
+      prev.includes(subjectId) 
+        ? prev.filter(id => id !== subjectId) 
+        : [...prev, subjectId]
+    );
+  };
 
   // Toggle game type selection (only for temporary state)
   const toggleGameType = (gameTypeId) => {
@@ -461,6 +445,15 @@ function Library() {
     setIsFiltering(tempSelectedSubjects.length > 0 || tempSelectedGameTypes.length > 0);
   };
 
+  // Function to remove a specific filter tag
+  const removeFilterTag = (type, id) => {
+    if (type === 'subject') {
+      setSelectedSubjects(prev => prev.filter(subjectId => subjectId !== id));
+    } else if (type === 'gameType') {
+      setSelectedGameTypes(prev => prev.filter(gameTypeId => gameTypeId !== id));
+    }
+  };
+
   // Search function
   const handleSearch = useCallback((term) => {
     // Avoid repeated search with the same term
@@ -521,6 +514,18 @@ function Library() {
     navigate('/installed-games');
   };
 
+  // Função para obter o nome completo de uma matéria pelo seu ID
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    return subject ? subject.name : subjectId;
+  };
+
+  // Função para obter o nome completo de um tipo de jogo pelo seu ID
+  const getGameTypeName = (gameTypeId) => {
+    const gameType = gameTypes.find(gt => gt.id === gameTypeId);
+    return gameType ? gameType.name : gameTypeId;
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -568,6 +573,7 @@ function Library() {
         </div>
       </header>
 
+    
       <main className="main-content">
         <Subject 
           subjects={subjectsData} 
@@ -614,7 +620,26 @@ function Library() {
         />
 
         {error && <p className="error-message">{error}</p>}
-
+  {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
+        <div style={{ marginTop: '10px' }}>
+          {/* <strong>Filtros aplicados:</strong> */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '5px' }}>
+            {selectedSubjects.map(subjectId => (
+              <span key={subjectId} className="filter-tag">
+                {getSubjectName(subjectId)}
+                <button onClick={() => removeFilterTag('subject', subjectId)}>×</button>
+              </span>
+            ))}
+            {selectedGameTypes.map(gameTypeId => (
+              <span key={gameTypeId} className="filter-tag">
+                {getGameTypeName(gameTypeId)}
+                <button onClick={() => removeFilterTag('gameType', gameTypeId)}>×</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      
         {isLoading ? (
           <Loader/>
         ) : (
