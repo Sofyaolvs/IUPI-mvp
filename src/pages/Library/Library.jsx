@@ -526,7 +526,7 @@ function Library() {
     return gameType ? gameType.name : gameTypeId;
   };
 
-  return (
+ return (
     <div className="app">
       <header className="header">
         <div className="search-container">
@@ -571,58 +571,10 @@ function Library() {
             initialValue={searchTerm}
           />
         </div>
+        
       </header>
-
-    
-      <main className="main-content">
-        <Subject 
-          subjects={subjectsData} 
-          onSelectSubject={(id) => {
-            // Map from Subject UI component ID to our filter system ID
-            let filterId;
-            switch(id) {
-              case 1: // Portugues
-                filterId = 'portugues';
-                break;
-              case 2: // Jogos de Raciocínio
-                filterId = 'raciocinio';
-                break;
-              case 3: // Jogos de Quebra-cabeça
-                filterId = 'quebra-cabeca';
-                break;
-              case 4: // Jogos de Memória
-                filterId = 'memoria';
-                break;
-              default:
-                filterId = null;
-            }
-            
-            if (filterId) {
-              // If it's a Game Type
-              if (['raciocinio', 'quebra-cabeca', 'memoria'].includes(filterId)) {
-                // Add to temporary state if not already there
-                if (!tempSelectedGameTypes.includes(filterId)) {
-                  setTempSelectedGameTypes(prev => [...prev, filterId]);
-                }
-              } 
-              // If it's a Subject
-              else {
-                // Add to temporary state if not already there
-                if (!tempSelectedSubjects.includes(filterId)) {
-                  setTempSelectedSubjects(prev => [...prev, filterId]);
-                }
-              }
-              
-              // Open the filter popup for better visibility
-              setIsFilterOpen(true);
-            }
-          }}
-        />
-
-        {error && <p className="error-message">{error}</p>}
-  {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
+      {(selectedSubjects.length > 0 || selectedGameTypes.length > 0) && (
         <div style={{ marginTop: '10px' }}>
-          {/* <strong>Filtros aplicados:</strong> */}
           <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: '5px' }}>
             {selectedSubjects.map(subjectId => (
               <span key={subjectId} className="filter-tag">
@@ -640,69 +592,184 @@ function Library() {
         </div>
       )}
       
+    
+      <main className="main-content">
+        {error && <p className="error-message">{error}</p>}
+
         {isLoading ? (
           <Loader/>
         ) : (
           <>
-           {availableGames.length > 0 && (
-              <div className="carousel-section">
-                <Carousel
-                  title="Jogos Disponíveis"
-                  onSeeMore={navigateToAllAvailableGames}
-                  maxItems={availableGames.length} // Now uses all available games
-                  totalItems={availableGames.length}
-                >
-                  {availableGames.map(game => (
-                    <GameCard
-                      key={game.id || `available-${game.name || game.title}`}
-                      image={game.image}
-                      cardImage={game.cardImage}
-                      title={game.title || game.name}
-                      subject={game.subject}
-                      tags={game.tags}
-                      id={game.id}
-                      isInstalled={false}
-                      executablePath={game.executablePath}
-                      path={game.path}
-                      description={game.description}
-                      url={game.url}
-                      installedGames={installedGames} // Pass installedGames to the component
-                    />
-                  ))}
-                </Carousel>
-              </div>
+            {/* Only show Subject component when no filters are active */}
+            {!isFiltering && !isSearching && (
+              <Subject 
+                subjects={subjectsData} 
+                onSelectSubject={(id) => {
+                  // Map from Subject UI component ID to our filter system ID
+                  let filterId;
+                  switch(id) {
+                    case 1: // Portugues
+                      filterId = 'portugues';
+                      break;
+                    case 2: // Jogos de Raciocínio
+                      filterId = 'raciocinio';
+                      break;
+                    case 3: // Jogos de Quebra-cabeça
+                      filterId = 'quebra-cabeca';
+                      break;
+                    case 4: // Jogos de Memória
+                      filterId = 'memoria';
+                      break;
+                    default:
+                      filterId = null;
+                  }
+                  
+                  if (filterId) {
+                    // If it's a Game Type
+                    if (['raciocinio', 'quebra-cabeca', 'memoria'].includes(filterId)) {
+                      // Add to temporary state if not already there
+                      if (!tempSelectedGameTypes.includes(filterId)) {
+                        setTempSelectedGameTypes(prev => [...prev, filterId]);
+                      }
+                    } 
+                    // If it's a Subject
+                    else {
+                      // Add to temporary state if not already there
+                      if (!tempSelectedSubjects.includes(filterId)) {
+                        setTempSelectedSubjects(prev => [...prev, filterId]);
+                      }
+                    }
+                    
+                    // Open the filter popup for better visibility
+                    setIsFilterOpen(true);
+                  }
+                }}
+              />
             )}
-            
-            {installedGames.length > 0 && (
-              <div className="carousel-section">
-                <Carousel
-                  title="Jogos Instalados"
-                  onSeeMore={navigateToAllInstalledGames}
-                  maxItems={installedGames.length} // Now uses all installed games
-                  totalItems={installedGames.length}
-                >
-                  {installedGames.map(game => (
+
+            {/* Show carousels only when no filters are active */}
+            {!isFiltering && !isSearching && (
+              <>
+                {availableGames.length > 0 && (
+                  <div className="carousel-section">
+                    <Carousel
+                      title="Jogos Disponíveis"
+                      onSeeMore={navigateToAllAvailableGames}
+                      maxItems={availableGames.length}
+                      totalItems={availableGames.length}
+                    >
+                      {availableGames.map(game => (
+                        <GameCard
+                          key={game.id || `available-${game.name || game.title}`}
+                          image={game.image}
+                          cardImage={game.cardImage}
+                          title={game.title || game.name}
+                          subject={game.subject}
+                          tags={game.tags}
+                          id={game.id}
+                          isInstalled={false}
+                          executablePath={game.executablePath}
+                          path={game.path}
+                          description={game.description}
+                          url={game.url}
+                          installedGames={installedGames}
+                        />
+                      ))}
+                    </Carousel>
+                  </div>
+                )}
+                
+                {installedGames.length > 0 && (
+                  <div className="carousel-section">
+                    <Carousel
+                      title="Jogos Instalados"
+                      onSeeMore={navigateToAllInstalledGames}
+                      maxItems={installedGames.length}
+                      totalItems={installedGames.length}
+                    >
+                      {installedGames.map(game => (
+                        <GameCard
+                          key={game.id || `installed-${game.name || game.title}`}
+                          image={game.image}
+                          cardImage={game.cardImage}
+                          title={game.title || game.name}
+                          subject={game.subject}
+                          tags={game.tags}
+                          id={game.id}
+                          isInstalled={true}
+                          executablePath={game.executablePath}
+                          path={game.path}
+                          description={game.description}
+                          url={game.url}
+                          installedGames={installedGames}
+                        />
+                      ))}
+                    </Carousel>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Show all games in a grid when filtering or searching */}
+            {(isFiltering || isSearching) && (
+              <div className="games-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '20px',
+                padding: '20px 0'
+              }}>
+                {/* Combine and filter both available and installed games */}
+                {[...availableGames, ...installedGames]
+                  .filter(game => {
+                    if (!isFiltering) return true;
+                    
+                    // Apply subject filters
+                    const subjectMatch = selectedSubjects.length === 0 || 
+                      (game.subject && selectedSubjects.some(subjectId => {
+                        const gameSubject = (game.subject || '').toLowerCase();
+                        return gameSubject === subjectId.toLowerCase() || 
+                              gameSubject.includes(subjectId.toLowerCase());
+                      }));
+                    
+                    // Apply game type filters
+                    let tagsMatch = selectedGameTypes.length === 0;
+                    
+                    if (!tagsMatch && game.tags && Array.isArray(game.tags)) {
+                      tagsMatch = game.tags.some(tag => {
+                        const tagName = typeof tag === 'string' ? tag.toLowerCase() : 
+                                       (tag && typeof tag === 'object' && tag.name ? tag.name.toLowerCase() : '');
+                        
+                        return selectedGameTypes.some(typeId => {
+                          const gameType = gameTypes.find(t => t.id === typeId);
+                          const gameTypeName = gameType ? gameType.name.toLowerCase() : typeId.toLowerCase();
+                          return tagName === gameTypeName || tagName.includes(gameTypeName);
+                        });
+                      });
+                    }
+                    
+                    return subjectMatch && tagsMatch;
+                  })
+                  .map(game => (
                     <GameCard
-                      key={game.id || `installed-${game.name || game.title}`}
+                      key={game.id || `game-${game.name || game.title}`}
                       image={game.image}
                       cardImage={game.cardImage}
                       title={game.title || game.name}
                       subject={game.subject}
                       tags={game.tags}
                       id={game.id}
-                      isInstalled={true}
+                      isInstalled={isGameAlreadyInstalled(game)}
                       executablePath={game.executablePath}
                       path={game.path}
                       description={game.description}
                       url={game.url}
-                      installedGames={installedGames} // Pass installedGames for consistency
+                      installedGames={installedGames}
                     />
                   ))}
-                </Carousel>
               </div>
             )}
 
-            {!isLoading && availableGames.length === 0 && installedGames.length === 0 && (
+            {!isLoading && ((isFiltering || isSearching) && [...availableGames, ...installedGames].length === 0) && (
               <div className="no-results-message">
                 {isSearching ? (
                   <p>Nenhum jogo encontrado para sua busca "{searchTerm}"</p>
