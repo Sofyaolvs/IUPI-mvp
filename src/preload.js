@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // Existing methods
   scrapeGame: (url) => ipcRenderer.invoke('scrape-game', url),
-  downloadGame: (url, strategy = 'default') => ipcRenderer.invoke('download-game', url, strategy),
+  downloadGame: (gameData, strategy = 'default') => ipcRenderer.invoke('download-game', gameData, strategy),
   openFileByPath: (filePath, gameName) => {
     // Support both invoke (for promise-based response) and send (for backwards compatibility)
     ipcRenderer.send('open-file-by-path', filePath, gameName);

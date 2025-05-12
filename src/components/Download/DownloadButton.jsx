@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Download, Loader, AlertTriangle, Play } from 'lucide-react';
 import './DownloadButton.css';
 
-const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalled, className }) => {
+const DownloadButton = ({ gameData, onDownloadComplete, isInstalled, className }) => {
   // Usar gameUrl se fornecido, caso contrário usar url (para compatibilidade com ambos)
   useEffect(() => {
     if (isInstalled) {
@@ -10,8 +10,12 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
     }
   }, [isInstalled]);
   
-  const downloadUrl = gameUrl || url;
+  console.log("data del jofos no btn" + gameData)
+
+  const downloadUrl = gameData.url;
   
+  console.log("downloadUrl del jofos no btn" + gameData.url)
+
   const [downloadState, setDownloadState] = useState('idle'); 
   const [progress, setProgress] = useState(0);
   const [downloadPath, setDownloadPath] = useState('');
@@ -92,7 +96,7 @@ const DownloadButton = ({ url, gameUrl, gameName, onDownloadComplete, isInstalle
       
       // Chamar a API do Electron para download
       console.log('Chamando electronAPI.downloadGame com URL:', downloadUrl);
-      const result = await window.electronAPI.downloadGame(downloadUrl);
+      const result = await window.electronAPI.downloadGame(gameData);
       console.log(`Download result:`, result);
       
       if (result && result.success) {

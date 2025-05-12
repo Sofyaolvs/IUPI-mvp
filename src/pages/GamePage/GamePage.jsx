@@ -692,8 +692,7 @@ export default function GamePage() {
             </button>
           ) : (
             <DownloadButton 
-              url={gameData.url} 
-              gameName={gameName}
+              gameData = {gameData}
               onDownloadComplete={(game) => {
                 console.log('Download completed with data:', game);
                 setIsInstalled(true);

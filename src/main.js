@@ -369,11 +369,13 @@ function checkInstalledGames(){
 }
 
 //Arrumar lógica do isGameInstalled (pq quebra se o jogo ja estiver baixado)
-ipcMain.handle('download-game', async (event, gameUrl) => {
+ipcMain.handle('download-game', async (event, gameData) => {
   try {
-    console.log('Iniciando download-game com URL:', gameUrl);
+    console.log('Iniciando download-game com URL:', gameData.url);
 
-    if (!gameUrl || typeof gameUrl !== 'string' || !/^https?:\/\/.+/.test(gameUrl) || !gameUrl.includes('itch.io')) {
+    console.log("\n\n Tags no mainjs: "+gameData.tags)
+
+    if (!gameData.url || typeof gameData.url !== 'string' || !/^https?:\/\/.+/.test(gameData.url) || !gameData.url.includes('itch.io')) {
       return {
         success: false,
         message: 'URL inválida fornecida para download'
@@ -381,7 +383,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     }
 
     // Extrai o final da URL como slug (ex: "terror-da-caatinga")
-    const urlSlug = gameUrl.split('/').filter(Boolean).pop();
+    const urlSlug = gameData.url.split('/').filter(Boolean).pop();
     const normalizedSlug = normalizeName(urlSlug);
 
     // Chama a função para obter jogos instalados
@@ -442,7 +444,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     };
 
     const progressInterval = simulateProgress();
-    const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
+    const downloadResult = await downloadGameFromItch(gameData, jogosDir);
     clearInterval(progressInterval);
 
     if (downloadResult.success) {

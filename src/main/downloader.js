@@ -82,7 +82,7 @@ module.exports = {
 * @param {Object} options Opções de download
 * @returns {Promise<Object>} Resultado do download
 */
-async function downloadGameFromItch(url, options = {}) {
+async function downloadGameFromItch(gameData, options = {}) {
  const { 
    customDownloadPath = null,
    timeout = 600000,  // 10 minutos
@@ -95,8 +95,10 @@ async function downloadGameFromItch(url, options = {}) {
  
  try {
    // Obter informações do jogo primeiro
-   console.log(`Iniciando processo de download para ${url}`);
-   const gameInfo = await scrapeItchGame(url);
+   console.log("\n\n Tags no mainjs: "+gameData.tags)
+   //todo escrever o arquivo
+   console.log(`Iniciando processo de download para ${gameData.url}`);
+   const gameInfo = await scrapeItchGame(gameData.url);
    const gameName = sanitizeFileName(gameInfo.title);
    
    // Definir pasta de download
@@ -143,8 +145,8 @@ async function downloadGameFromItch(url, options = {}) {
    });
    
    // Navegar para a página do jogo
-   console.log(`Navegando para ${url}`);
-   await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });    
+   console.log(`Navegando para ${gameData.url}`);
+   await page.goto(gameData.url, { waitUntil: 'networkidle2', timeout: 60000 });    
    await page.waitForSelector('a.button.download_btn', { timeout: 60000 });
    await page.click('a.button.download_btn');
    
@@ -231,7 +233,15 @@ async function downloadGameFromItch(url, options = {}) {
    }
    
    // Salvar informações do jogo após download e extração
-   saveGameInfo(gameInfo, downloadPath);
+   saveGameInfo(gameData, downloadPath);
+
+   try {
+    const infoPath = path.join(downloadPath, 'game-tags.json');
+    fs.writeFileSync(infoPath, JSON.stringify(gameData.tags, null, 2));
+    console.log(`Tags do jogo salvas em: ${infoPath}`);
+  } catch (error) {
+    console.error(`Erro ao salvar tags do jogo: ${error.message}`);
+  }
    
    // Baixar imagens do jogo após download e extração
    if (saveImages && gameInfo.images && gameInfo.images.length > 0) {
