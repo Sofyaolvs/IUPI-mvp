@@ -1,4 +1,4 @@
-/* CSS for Subject component with properly    centered buttons */
+/* CSS for Subject component with properly centered buttons */
 .carousel-container-subject {
   width: 100%;
   margin: 32px 0;
@@ -10,7 +10,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;    
+  margin-bottom: 20px;
   padding: 0 10px;
 }
 
@@ -64,6 +64,19 @@
   margin-bottom: 8px;
   position: relative;
   box-shadow: 0 4px 10px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Adicionando o efeito de degradê cobrindo toda a imagem */
+.subject-image-container-subject::after {
+  content: '';
+  position: absolute;
+  top: 0; /* Começa do topo em vez de bottom: 0 */
+  left: 0;
+  width: 100%;
+  height: 100%; /* Cobre 100% da altura em vez de apenas 40% */
+  background-image: linear-gradient(to top, hsla(234, 92%, 15%, 0.521) 0%, hsla(234, 100%, 22%, 0.1) 100%);
+  pointer-events: none; /* Permite cliques através do degradê */
+  z-index: 1; /* Garante que fique acima da imagem */
 }
 
 .subject-image {

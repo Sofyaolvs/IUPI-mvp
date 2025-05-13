@@ -60,7 +60,7 @@ const SubjectPage = () => {
     <div className="subject-page">
       <header className="subject-header">
         <button className="back-button-subject" onClick={goBack}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24">
+          <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 24 24" >
             <path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m15 6l-6 6l6 6"/>
           </svg>
         </button>
@@ -73,7 +73,9 @@ const SubjectPage = () => {
         {isLoading ? (
           <Loader message="Carregando jogos" />
         ) : (
+          
           <div className="games-grid-subject">
+            
             {games.length > 0 ? (
               games.map(game => (
                 <GameCard

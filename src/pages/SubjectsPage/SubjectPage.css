@@ -1,27 +1,33 @@
 .subject-page {
-  padding: 2rem; /* Aumentado de 1rem para 2rem */
   max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem 2rem 2rem 2rem;
 }
 
 .subject-header {
   display: flex;
   align-items: center;
-  margin-bottom: 2.5rem; /* Aumentado de 2rem para 2.5rem */
-  padding-left: 0.5rem; /* Adicionado para alinhar com o grid */
+  margin-bottom: 2.5rem;
+  /* Removido o padding-left para alinhar com os cards */
+  margin-left: -10px; /* Ajuste negativo para compensar o espaço do SVG */
 }
 
 .back-button-subject {
   background: none;
   border: none;
-  font-size: 1rem;
   color: #333;
   cursor: pointer;
-  padding: 0.5rem;
-  margin-right: 1.5rem; /* Aumentado de 1rem para 1.5rem */
+  padding: 0;
+  margin-right: 0.75rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.2s;
+}
+
+.back-button-subject svg {
+  width: 40px;
+  height: 40px;
 }
 
 .back-button-subject:hover {
@@ -34,8 +40,8 @@
 }
 
 .subject-content {
-  margin-top: 2rem; /* Aumentado de 1rem para 2rem */
-  padding: 0 0.5rem; /* Adicionado para garantir alinhamento */
+  margin-top: 2rem;
+  padding: 0; /* Removido padding para garantir alinhamento */
 }
 
 .games-grid-subject {
@@ -46,7 +52,7 @@
 }
 
 .no-games-message {
-  grid-column: 1 / -1;
+  width: 100%;
   text-align: center;
   font-size: 1.2rem;
   color: #666;
@@ -56,5 +62,16 @@
 .error-message {
   color: red;
   text-align: center;
-  margin-bottom: 1.5rem; /* Aumentado de 1rem para 1.5rem */
+  margin-bottom: 1.5rem;
+}
+
+/* Media queries para responsividade */
+@media (max-width: 768px) {
+  .subject-page {
+    padding: 1.5rem;
+  }
+  
+  .subject-header {
+    margin-bottom: 1.5rem;
+  }
 }

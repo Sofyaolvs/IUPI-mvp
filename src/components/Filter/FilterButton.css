@@ -148,8 +148,8 @@
 /* Responsive adjustments for different monitor sizes */
 @media screen and (max-width: 1920px) {
   .filter-popup {
-    right: 30%;
-    top: 17%;
+    right: 30.5%;
+    top: 13%;
   }
 }
 
@@ -162,14 +162,14 @@
 
 @media screen and (max-width: 1366px) {
   .filter-popup {
-    right: 20%;
+    right: 23%;
     top: 17%;
   }
 }
 
 @media screen and (max-width: 1280px) {
   .filter-popup {
-    right: 8%;
+    right: 10%;
     top: 17%;
   }
 }
