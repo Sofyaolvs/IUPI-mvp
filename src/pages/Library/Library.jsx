@@ -719,7 +719,7 @@ function Library() {
                 padding: '20px 0'
               }}>
                 {/* Combine and filter both available and installed games */}
-                {[...availableGames, ...installedGames]
+                {[...availableGames]
                   .filter(game => {
                     if (!isFiltering) return true;
                     

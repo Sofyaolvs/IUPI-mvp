@@ -608,7 +608,7 @@ export default function GamePage() {
       </div>
 
       {/* Categories / Tags - Only show if not viewing from installed games */}
-      {!isViewingInstalledGame && (
+     
         <div className="categories">
           {gameTags.length > 0 ? (
             gameTags.map((tag, index) => (
@@ -618,7 +618,7 @@ export default function GamePage() {
             <button className="category-button">Sem categoria</button>
           )}
         </div>
-      )}
+    
 
       {/* Main content */}
       <div className="content-wrapper">
@@ -708,12 +708,11 @@ export default function GamePage() {
           )}
         </div>
       </div>
-        {/* Jogos recomendados  */}
-        {!isViewingInstalledGame && (
+       
           <div>
             <RecommendedGames currentGame={gameData} />
           </div>
-        )}
+
     </div>
   );
 }
