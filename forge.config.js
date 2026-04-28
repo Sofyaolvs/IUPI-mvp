@@ -1,5 +1,19 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const WebMultiLoggerModule = require('@electron-forge/web-multi-logger');
+
+const LOOPBACK_HOST = '127.0.0.1';
+const WebMultiLogger = WebMultiLoggerModule.default || WebMultiLoggerModule;
+
+if (WebMultiLogger?.prototype?.start && !WebMultiLogger.prototype.__iupiPatchedToLoopback) {
+  WebMultiLogger.prototype.start = function start() {
+    return new Promise((resolve, reject) => {
+      this.server = this.app.listen(this.port, LOOPBACK_HOST, () => resolve(this.port));
+      this.server.once('error', reject);
+    });
+  };
+  WebMultiLogger.prototype.__iupiPatchedToLoopback = true;
+}
 
 module.exports = {
   packagerConfig: {
@@ -33,6 +47,9 @@ module.exports = {
       name: '@electron-forge/plugin-webpack',
       config: {
         mainConfig: './webpack.main.config.js',
+        devServer: {
+          host: LOOPBACK_HOST,
+        },
         renderer: {
           config: './webpack.renderer.config.js',
           entryPoints: [
