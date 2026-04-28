@@ -34,7 +34,7 @@ const createWindow = () => {
         'Content-Security-Policy': [
           "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
           "img-src 'self' file: data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
-          `connect-src 'self' http://52.91.62.219:3001;`
+          `connect-src 'self' http://52.91.62.219:3001 https://vortex-hmg.unifor.br https://*.unifor.br;`
         ]
       }
     });
