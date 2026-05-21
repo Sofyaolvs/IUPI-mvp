@@ -26,5 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // Optional utility for clearing the image cache
-  clearImageCache: () => ipcRenderer.invoke('clear-image-cache')
+  clearImageCache: () => ipcRenderer.invoke('clear-image-cache'),
+
+  // Persistent config (survives app restarts and port changes)
+  configGet: (key) => ipcRenderer.invoke('config-get', key),
+  configSet: (key, value) => ipcRenderer.invoke('config-set', key, value),
+  configDelete: (key) => ipcRenderer.invoke('config-delete', key),
 });

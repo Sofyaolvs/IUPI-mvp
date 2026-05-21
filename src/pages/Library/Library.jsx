@@ -55,50 +55,37 @@ function Library() {
   const [showDebugPopup, setShowDebugPopup] = useState(false);
   const clickTimerRef = useRef(null);
   
-  // Initialize localStorage values if they exist
+  const [configReady, setConfigReady] = useState(false);
+
+  // Load persisted config from disk on startup
   useEffect(() => {
-    // Load homolog URL from localStorage
-    const savedHomologUrl = localStorage.getItem('HOMOLOG_API_URL');
-    if (savedHomologUrl) {
-      window.HOMOLOG_API_URL = savedHomologUrl;
-      console.log('Homolog URL loaded from localStorage:', savedHomologUrl);
-    }
-    
-    // Load forced homolog API configuration
-    const forceHomolog = localStorage.getItem('FORCE_HOMOLOG') === 'true';
-    window.FORCE_HOMOLOG = forceHomolog;
-    if (forceHomolog) {
-      console.log('Forced homolog API usage activated');
-    }
+    const loadConfig = async () => {
+      const savedUrl = await window.electronAPI.configGet('HOMOLOG_API_URL');
+      if (savedUrl) {
+        window.HOMOLOG_API_URL = savedUrl;
+        console.log('Homolog URL loaded from config:', savedUrl);
+      }
+      const forceHomolog = await window.electronAPI.configGet('FORCE_HOMOLOG');
+      window.FORCE_HOMOLOG = forceHomolog === true;
+      setConfigReady(true);
+    };
+    loadConfig();
   }, []);
   
   // Custom function to get the API URL
   const getApiUrl = useCallback(() => {
-    // Check if forced homolog API usage is enabled
-    if (window.FORCE_HOMOLOG || localStorage.getItem('FORCE_HOMOLOG') === 'true') {
-      const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
-      if (homologUrl) {
-        console.log('Using homolog API (forced):', homologUrl);
-        return homologUrl;
-      }
+    if (window.FORCE_HOMOLOG && window.HOMOLOG_API_URL) {
+      console.log('Using homolog API (forced):', window.HOMOLOG_API_URL);
+      return window.HOMOLOG_API_URL;
     }
 
-    // Detect local environment
-    const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === '127.0.0.1';
-    if (isLocal) {
-      // Check if homolog URL is configured
-      const homologUrl = window.HOMOLOG_API_URL || localStorage.getItem('HOMOLOG_API_URL');
-      if (homologUrl) {
-        console.log('Using homolog API:', homologUrl);
-        return homologUrl;
-      }
-      console.log('Using default local API: http://52.91.62.219:3001');
-      return 'http://52.91.62.219:3001';
+    if (window.HOMOLOG_API_URL) {
+      console.log('Using homolog API:', window.HOMOLOG_API_URL);
+      return window.HOMOLOG_API_URL;
     }
-    
-    // Fallback to production
-    console.log('Using production API');
-    return '';
+
+    console.log('Using default API: http://52.91.62.219:3001');
+    return 'http://52.91.62.219:3001';
   }, []);
   
   // Custom function to fetch games with the correct URL
@@ -165,8 +152,8 @@ function Library() {
       }
     };
     
-    loadGamesAndCheckInstalled();
-  }, [fetchGamesCustom]);
+    if (configReady) loadGamesAndCheckInstalled();
+  }, [fetchGamesCustom, configReady]);
 
   // Modified toggleFilterPopup to track rapid clicks
   const toggleFilterPopup = () => {
@@ -760,13 +747,11 @@ function Library() {
                 onChange={e => {
                   const value = e.target.value.trim();
                   if (value) {
-                    // Store value in localStorage for persistence
-                    localStorage.setItem('HOMOLOG_API_URL', value);
-                    // Set global variable
+                    window.electronAPI.configSet('HOMOLOG_API_URL', value);
                     window.HOMOLOG_API_URL = value;
-                    console.log('API URL defined:', window.HOMOLOG_API_URL);
+                    console.log('API URL defined:', value);
                   } else {
-                    localStorage.removeItem('HOMOLOG_API_URL');
+                    window.electronAPI.configDelete('HOMOLOG_API_URL');
                     window.HOMOLOG_API_URL = null;
                   }
                 }}
@@ -786,7 +771,7 @@ function Library() {
                   checked={!!window.FORCE_HOMOLOG}
                   onChange={e => {
                     window.FORCE_HOMOLOG = e.target.checked;
-                    localStorage.setItem('FORCE_HOMOLOG', e.target.checked ? 'true' : 'false');
+                    window.electronAPI.configSet('FORCE_HOMOLOG', e.target.checked);
                   }}
                   style={{ marginRight: '8px' }}
                 />
@@ -797,9 +782,8 @@ function Library() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
               <button 
                 onClick={() => {
-                  // Remove values
-                  localStorage.removeItem('HOMOLOG_API_URL');
-                  localStorage.removeItem('FORCE_HOMOLOG');
+                  window.electronAPI.configDelete('HOMOLOG_API_URL');
+                  window.electronAPI.configDelete('FORCE_HOMOLOG');
                   window.HOMOLOG_API_URL = null;
                   window.FORCE_HOMOLOG = false;
                   closeDebugPopup();

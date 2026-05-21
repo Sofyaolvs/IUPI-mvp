@@ -1,6 +1,6 @@
 {
-  "name": "teste",
-  "productName": "teste",
+  "name": "IUPI",
+  "productName": "IUPI",
   "version": "1.0.17",
   "description": "My Electron application description",
   "main": ".webpack/main",

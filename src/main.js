@@ -19,6 +19,7 @@ const createWindow = () => {
    mainWindow = new BrowserWindow({
      width: 800,
      height: 600,
+     icon: path.join(app.getAppPath(), 'src/assets/icon-i.png'),
      webPreferences: {
        preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
        contextIsolation: true,
@@ -65,6 +66,39 @@ app.on('window-all-closed', () => {
 });
 
 // 📡 HANDLERS IPC //
+
+const configPath = () => path.join(app.getPath('userData'), 'iupi-config.json');
+
+function readConfig() {
+  try {
+    if (fs.existsSync(configPath())) {
+      return JSON.parse(fs.readFileSync(configPath(), 'utf8'));
+    }
+  } catch {}
+  return {};
+}
+
+function writeConfig(data) {
+  fs.writeFileSync(configPath(), JSON.stringify(data, null, 2), 'utf8');
+}
+
+ipcMain.handle('config-get', (_event, key) => {
+  return readConfig()[key] ?? null;
+});
+
+ipcMain.handle('config-set', (_event, key, value) => {
+  const config = readConfig();
+  config[key] = value;
+  writeConfig(config);
+  return true;
+});
+
+ipcMain.handle('config-delete', (_event, key) => {
+  const config = readConfig();
+  delete config[key];
+  writeConfig(config);
+  return true;
+});
 
 // Handler for getting images as Base64
 ipcMain.handle('get-image-base64', async (event, imagePath) => {

@@ -18,6 +18,7 @@ if (WebMultiLogger?.prototype?.start && !WebMultiLogger.prototype.__iupiPatchedT
 module.exports = {
   packagerConfig: {
     asar: true,
+    icon: './src/assets/icon-i',
   },
   rebuildConfig: {},
   makers: [
