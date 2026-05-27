@@ -230,7 +230,8 @@ async function downloadGameFromItch(url, options = {}) {
      }
    }
    
-   // Salvar informações do jogo após download e extração
+   // Salvar informações do jogo após download e extração (inclui URL para referência futura)
+   gameInfo.url = url;
    saveGameInfo(gameInfo, downloadPath);
    
    // Baixar imagens do jogo após download e extração

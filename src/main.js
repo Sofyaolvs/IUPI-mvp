@@ -10,6 +10,16 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+// Aceita o certificado institucional da Unifor no Windows e outros SOs
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  if (url.includes('unifor.br')) {
+    event.preventDefault();
+    callback(true);
+  } else {
+    callback(false);
+  }
+});
+
 let mainWindow;
 
 // Image cache to improve performance
@@ -34,8 +44,8 @@ const createWindow = () => {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; " +
-          "img-src 'self' file: data: https://*.itch.zone https://img.itch.zone https://img.itch.io https://itch.io https://itch-io.imgix.net *; " +
-          `connect-src 'self' http://52.91.62.219:3001 https://vortex-hmg.unifor.br https://*.unifor.br;`
+          "img-src 'self' file: data: https: *; " +
+          "connect-src 'self' https: http:;"
         ]
       }
     });
@@ -67,7 +77,17 @@ app.on('window-all-closed', () => {
 
 // 📡 HANDLERS IPC //
 
-const configPath = () => path.join(app.getPath('userData'), 'iupi-config.json');
+// Modo portátil: salva dados ao lado do executável (pen drive).
+// Em dev usa userData para não sujar o repo.
+const portableBase = () => {
+  if (app.isPackaged) {
+    return path.join(path.dirname(app.getPath('exe')), 'IUPI-data');
+  }
+  return app.getPath('userData');
+};
+
+const configPath = () => path.join(portableBase(), 'iupi-config.json');
+const gamesDir = () => path.join(portableBase(), 'jogos');
 
 function readConfig() {
   try {
@@ -81,6 +101,42 @@ function readConfig() {
 function writeConfig(data) {
   fs.writeFileSync(configPath(), JSON.stringify(data, null, 2), 'utf8');
 }
+
+// Faz requisições HTTP/HTTPS pelo processo principal (Node) para contornar
+// bloqueios de certificado no Windows via renderer/Chromium
+ipcMain.handle('fetch-url', async (_event, url, options = {}) => {
+  const https = require('https');
+  const http = require('http');
+  const { method = 'GET', headers = {}, body } = options;
+
+  return new Promise((resolve) => {
+    const lib = url.startsWith('https') ? https : http;
+    const reqOptions = {
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      rejectUnauthorized: false, // aceita certificados institucionais
+    };
+
+    const req = lib.request(url, reqOptions, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ ok: false, status: res.statusCode, data: null, error: 'JSON parse error' });
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      resolve({ ok: false, status: 0, data: null, error: err.message });
+    });
+
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+});
 
 ipcMain.handle('config-get', (_event, key) => {
   return readConfig()[key] ?? null;
@@ -117,16 +173,15 @@ ipcMain.handle('get-image-base64', async (event, imagePath) => {
     if (!path.isAbsolute(imagePath)) {
       // If it starts with 'lib/', resolve from app root
       if (imagePath.startsWith('lib/') || imagePath.startsWith('/lib/')) {
-        resolvedPath = path.join(process.cwd(), imagePath.replace(/^\//, ''));
+        resolvedPath = path.join(gamesDir(), imagePath.replace(/^\/?(lib\/)?/, ''));
       } else {
         // Try multiple potential base paths
         const potentialPaths = [
-          path.join(process.cwd(), imagePath),
-          path.join(process.cwd(), 'lib', imagePath),
+          path.join(gamesDir(), imagePath),
           // If we have a path like "images/screenshot-1.jpg"
-          imagePath.includes('images/') ? 
-            path.join(process.cwd(), imagePath) : 
-            path.join(process.cwd(), 'images', imagePath)
+          imagePath.includes('images/') ?
+            path.join(gamesDir(), imagePath) :
+            path.join(gamesDir(), 'images', imagePath)
         ];
         
         // Find the first path that exists
@@ -151,8 +206,8 @@ ipcMain.handle('get-image-base64', async (event, imagePath) => {
         const gameName = matches[1];
         const imageName = matches[2];
         
-        // Try to find the game folder in the lib directory
-        const libPath = path.join(process.cwd(), 'lib');
+        // Try to find the game folder in the games directory
+        const libPath = gamesDir();
         if (fs.existsSync(libPath)) {
           const gameDir = path.join(libPath, gameName);
           if (fs.existsSync(gameDir)) {
@@ -223,8 +278,7 @@ ipcMain.handle('scrape-game', async (event, gameUrl) => {
 });
 
 ipcMain.handle('check-installed-games', async () => {
-  const libDir = path.resolve(process.cwd(), 'lib');
-  const appUrl = new URL(MAIN_WINDOW_WEBPACK_ENTRY).origin;
+  const libDir = gamesDir();
 
   try {
     // Check if lib directory exists
@@ -385,7 +439,7 @@ function findExecutableInExtractedFolder(extractedPath) {
 }
 
 function checkInstalledGames(){
-  const libDir = path.resolve(process.cwd(), 'lib');
+  const libDir = gamesDir();
 
   try {
     const items = fs.readdirSync(libDir, { withFileTypes: true });
@@ -433,7 +487,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
       console.log("--------------------------------");
       console.log(`Jogo "${normalizedSlug}" já está instalado.`);
       // Monta o caminho como se fosse um download completo
-      const exeDir = path.join(process.cwd(), 'lib', normalizedSlug);
+      const exeDir = path.join(gamesDir(), normalizedSlug);
       const exePath = fs.readdirSync(exeDir).find(file => file.endsWith('.exe'));
 
       console.log("--------------------------------")
@@ -450,7 +504,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     }
 
     // 🔽 Continua com o download se não estiver instalado
-    const jogosDir = path.join(app.getPath('userData'), 'jogos');
+    const jogosDir = gamesDir();
     if (!fs.existsSync(jogosDir)) fs.mkdirSync(jogosDir, { recursive: true });
 
     const sendProgress = (percent, status, error = null) => {
@@ -476,7 +530,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
     };
 
     const progressInterval = simulateProgress();
-    const downloadResult = await downloadGameFromItch(gameUrl, jogosDir);
+    const downloadResult = await downloadGameFromItch(gameUrl, { customDownloadPath: jogosDir });
     clearInterval(progressInterval);
 
     if (downloadResult.success) {
@@ -484,7 +538,7 @@ ipcMain.handle('download-game', async (event, gameUrl) => {
       const exeFile = downloadResult.files?.find(f => f.endsWith('.exe'));
       return {
         success: true,
-        executablePath: exeFile || null,
+        executablePath: downloadResult.executablePath || exeFile || null,
         path: downloadResult.path,
         files: downloadResult.files,
         message: 'Download concluído com sucesso!'

@@ -1,28 +1,35 @@
+const DEFAULT_API_URL = 'https://vortex-hmg.unifor.br/iupi/v1';
+
 function getApiUrl() {
-  // Detecta ambiente local
-  const isLocal = window?.location?.hostname === 'localhost' || window?.location?.hostname === 'locahost';
-  if (isLocal) {
-    // Verify if there's a custom API URL set
-    if (window.HOMOLOG_API_URL) {
-      console.log('Using custom API URL:', window.HOMOLOG_API_URL);
-      return window.HOMOLOG_API_URL;
-    }
-    return 'http://52.91.62.219:3001'; // Default API URL
-  }
-  // Usa a chave global definida pelo input
   if (window.HOMOLOG_API_URL) {
     return window.HOMOLOG_API_URL;
   }
-  // Fallback: pode retornar uma string vazia ou lançar erro
-  return '';
+  return DEFAULT_API_URL;
 }
-
-const API_URL = getApiUrl();
 
 // Cache para armazenar jogos já buscados
 let gamesCache = null;
 let lastFetchTime = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos em milissegundos
+
+// Cache persistente de URLs de imagens (sobrevive ao reinício do app)
+let persistentImageCache = null;
+
+async function loadPersistentImageCache() {
+  if (persistentImageCache !== null) return;
+  try {
+    const cached = await window.electronAPI.configGet('imageUrlCache');
+    persistentImageCache = cached && typeof cached === 'object' ? cached : {};
+  } catch (e) {
+    persistentImageCache = {};
+  }
+}
+
+function savePersistentImageCache() {
+  try {
+    window.electronAPI.configSet('imageUrlCache', persistentImageCache);
+  } catch (e) {}
+}
 
 // Helper function to extract card image with improved logging
 const extractCardImage = (gameData) => {
@@ -60,19 +67,25 @@ export const fetchGames = async (forceRefresh = false) => {
     
     const apiUrl = getApiUrl();
     console.log('Fetching fresh games from API:', apiUrl);
-    
-    const response = await fetch(`${apiUrl}/games`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar jogos: ${response.statusText}`);
+    let games;
+    if (window.electronAPI && window.electronAPI.fetchUrl) {
+      // Usa o processo Node para contornar problemas de certificado no Windows
+      const result = await window.electronAPI.fetchUrl(`${apiUrl}/games`);
+      if (!result.ok) {
+        throw new Error(`Erro ao buscar jogos: status ${result.status}${result.error ? ' - ' + result.error : ''}`);
+      }
+      games = result.data;
+    } else {
+      const response = await fetch(`${apiUrl}/games`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar jogos: ${response.statusText}`);
+      }
+      games = await response.json();
     }
-
-    const games = await response.json();
     console.log(`Fetched ${games.length} games from API`);
     
     // Processamento em lote das imagens para melhorar performance
@@ -106,20 +119,25 @@ async function processGamesImages(games) {
   const processedGames = [];
   const gamesNeedingImages = [];
   
+  await loadPersistentImageCache();
+
   // Primeiro passo: identificar jogos que precisam de imagens
   for (const game of games) {
     if (!game || !game.url) {
       console.warn('Skipping invalid game entry:', game);
       continue;
     }
-    
+
     // Se já tem imagem, não precisa processar
-    if ((game.cardImage && typeof game.cardImage === 'string') || 
+    if ((game.cardImage && typeof game.cardImage === 'string') ||
         (game.image && typeof game.image === 'string')) {
-      console.log(`Game ${game.title || game.name || 'Untitled'} already has image`);
+      processedGames.push(game);
+    } else if (persistentImageCache[game.url]) {
+      // Usar imagem do cache persistente (sem scraping)
+      game.cardImage = persistentImageCache[game.url];
+      game.image = persistentImageCache[game.url];
       processedGames.push(game);
     } else {
-      console.log(`Game ${game.title || game.name || 'Untitled'} needs image scraping`);
       gamesNeedingImages.push(game);
     }
   }
@@ -147,6 +165,8 @@ async function processGamesImages(games) {
               console.log(`Successfully found image for ${game.title || game.name || 'Untitled'}`);
               game.cardImage = cardImage;
               game.image = cardImage;
+              persistentImageCache[game.url] = cardImage;
+              savePersistentImageCache();
             } else {
               console.log(`No image found for ${game.title || game.name || 'Untitled'}`);
             }
@@ -194,19 +214,24 @@ export const fetchGameById = async (gameId) => {
     
     const apiUrl = getApiUrl();
     console.log(`Fetching game by ID ${gameId} from API:`, apiUrl);
-    
-    const response = await fetch(`${apiUrl}/games/${gameId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar jogo: ${response.statusText}`);
+    let game;
+    if (window.electronAPI && window.electronAPI.fetchUrl) {
+      const result = await window.electronAPI.fetchUrl(`${apiUrl}/games/${gameId}`);
+      if (!result.ok) {
+        throw new Error(`Erro ao buscar jogo: status ${result.status}${result.error ? ' - ' + result.error : ''}`);
+      }
+      game = result.data;
+    } else {
+      const response = await fetch(`${apiUrl}/games/${gameId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar jogo: ${response.statusText}`);
+      }
+      game = await response.json();
     }
-
-    const game = await response.json();
     console.log('Fetched game:', game.title || game.name || gameId);
     
     // Processar imagem se necessário

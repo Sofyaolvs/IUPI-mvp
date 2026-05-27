@@ -32,4 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configGet: (key) => ipcRenderer.invoke('config-get', key),
   configSet: (key, value) => ipcRenderer.invoke('config-set', key, value),
   configDelete: (key) => ipcRenderer.invoke('config-delete', key),
+
+  // Faz fetch pelo processo Node (contorna problemas de certificado no Windows)
+  fetchUrl: (url, options) => ipcRenderer.invoke('fetch-url', url, options),
 });

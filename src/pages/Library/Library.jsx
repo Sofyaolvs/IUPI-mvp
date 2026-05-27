@@ -60,10 +60,14 @@ function Library() {
   // Load persisted config from disk on startup
   useEffect(() => {
     const loadConfig = async () => {
+      const FIXED_API_URL = 'https://vortex-hmg.unifor.br/iupi/v1';
       const savedUrl = await window.electronAPI.configGet('HOMOLOG_API_URL');
-      if (savedUrl) {
+      // Se a URL salva for a antiga ou inválida, substitui pela URL fixa
+      if (savedUrl && savedUrl !== 'http://52.91.62.219:3001' && savedUrl !== 'http://localhost:3001') {
         window.HOMOLOG_API_URL = savedUrl;
-        console.log('Homolog URL loaded from config:', savedUrl);
+      } else {
+        window.HOMOLOG_API_URL = FIXED_API_URL;
+        window.electronAPI.configSet('HOMOLOG_API_URL', FIXED_API_URL);
       }
       const forceHomolog = await window.electronAPI.configGet('FORCE_HOMOLOG');
       window.FORCE_HOMOLOG = forceHomolog === true;
@@ -72,52 +76,43 @@ function Library() {
     loadConfig();
   }, []);
   
-  // Custom function to get the API URL
-  const getApiUrl = useCallback(() => {
-    if (window.FORCE_HOMOLOG && window.HOMOLOG_API_URL) {
-      console.log('Using homolog API (forced):', window.HOMOLOG_API_URL);
-      return window.HOMOLOG_API_URL;
-    }
-
-    if (window.HOMOLOG_API_URL) {
-      console.log('Using homolog API:', window.HOMOLOG_API_URL);
-      return window.HOMOLOG_API_URL;
-    }
-
-    console.log('Using default API: http://52.91.62.219:3001');
-    return 'http://52.91.62.219:3001';
-  }, []);
-  
-  // Custom function to fetch games with the correct URL
-  const fetchGamesCustom = useCallback(async () => {
-    try {
-      const apiUrl = getApiUrl();
-      console.log('Connecting to API:', apiUrl);
-      
-      // Basic implementation if we need to replace the original
-      const response = await fetch(`${apiUrl}/games`);
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Error in fetchGamesCustom:', error);
-      throw error;
-    }
-  }, [getApiUrl]);
-  
   // Temporary filter states that are only applied when "Salvar" is clicked
   const [tempSelectedSubjects, setTempSelectedSubjects] = useState([]);
   const [tempSelectedGameTypes, setTempSelectedGameTypes] = useState([]);
+
+  // Atualiza jogos instalados quando um download conclui
+  useEffect(() => {
+    const handleDownloadComplete = async (_event, data) => {
+      if (data.status === 'complete') {
+        try {
+          const installedGamesData = await window.electronAPI.checkInstalledGames();
+          setInstalledGames(installedGamesData);
+          const installedNames = new Set(
+            installedGamesData.map(game => (game.title || game.name).toLowerCase())
+          );
+          setAvailableGames(prev => prev.filter(game => {
+            const gameName = (game.name || game.title || '').toLowerCase();
+            return !installedNames.has(gameName);
+          }));
+        } catch (err) {
+          console.error('Erro ao atualizar jogos instalados:', err);
+        }
+      }
+    };
+
+    window.electronAPI.onDownloadProgress(handleDownloadComplete);
+    return () => {
+      window.electronAPI.removeDownloadProgress(handleDownloadComplete);
+    };
+  }, []);
 
   useEffect(() => {
     const loadGamesAndCheckInstalled = async () => {
       setIsLoading(true);
       try {
-        // 1. First load all games from API
+        // 1. First load all games from API (uses in-memory + persistent image cache)
         console.log("Loading games from API...");
-        // Use our modified version of fetchGames that respects API configuration
-        const games = await fetchGamesCustom();
+        const games = await fetchGames();
         console.log("Games loaded:", games);
         
         // 2. Store games in state
@@ -153,7 +148,7 @@ function Library() {
     };
     
     if (configReady) loadGamesAndCheckInstalled();
-  }, [fetchGamesCustom, configReady]);
+  }, [configReady]);
 
   // Modified toggleFilterPopup to track rapid clicks
   const toggleFilterPopup = () => {
